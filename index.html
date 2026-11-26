@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PesoFlow — Daily Wage & Student Budget Tracker</title>
+  <title>PesoFlow — Smart Budget & Loan Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,7 +59,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold tracking-tight leading-tight">PesoFlow</h1>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">Daily Wage & Loan Automator</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">Smart Budget & Loan Tracker</p>
         </div>
       </div>
 
@@ -70,8 +70,8 @@
           <span>Share</span>
         </button>
 
-        <!-- Export / Import / Reset Dropdown Trigger -->
-        <button onclick="openBackupModal()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition" title="Backup & New Month">
+        <!-- Cycle / Backup Trigger -->
+        <button onclick="openBackupModal()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition" title="Cycle Reset & Backup">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
           <span class="hidden sm:inline">Backup</span>
         </button>
@@ -93,60 +93,48 @@
       <div class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-[#151F34] dark:via-[#11192B] dark:to-[#0E1525] text-white p-5 sm:p-6 shadow-lg border border-slate-700/60">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                10 Working Days Logged
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span id="heroCycleBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                0 Workdays Logged
               </span>
-              <span id="debtFreeBadge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                1 Loan Fully Paid Off
+              <span id="debtFreeBadge" class="hidden inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                0 Loans Paid Off
               </span>
             </div>
-            <p class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-2">Actual Cash Left On Hand</p>
-            <div class="flex items-baseline gap-2.5 mt-0.5">
-              <h2 id="heroCashLeft" class="text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight text-white">₱1,190.82</h2>
-              <span id="heroPureNetNote" class="text-xs text-slate-400 tabular-nums">(₱913.10 after ₱277.72 misc bill)</span>
+            <p class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-2">Available Cash On Hand</p>
+            <div class="flex flex-wrap items-baseline gap-2.5 mt-0.5">
+              <h2 id="heroCashLeft" class="text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight text-white">₱0.00</h2>
+              <span id="heroPureNetNote" class="text-xs text-slate-400 tabular-nums"></span>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3 sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-700/60">
             <div class="bg-white/5 rounded-xl px-3.5 py-2.5 border border-white/10">
-              <p class="text-[11px] text-slate-400">Total Salary Earned</p>
-              <p id="heroTotalEarned" class="text-base sm:text-lg font-bold text-emerald-400 tabular-nums">₱7,300.00</p>
-              <p id="heroWorkdaysCount" class="text-[10px] text-slate-400">10 workdays (₱3.8k + ₱3.5k)</p>
+              <p class="text-[11px] text-slate-400">Total Income</p>
+              <p id="heroTotalEarned" class="text-base sm:text-lg font-bold text-emerald-400 tabular-nums">₱0.00</p>
+              <p id="heroWorkdaysCount" class="text-[10px] text-slate-400">0 workdays logged</p>
             </div>
             <div class="bg-white/5 rounded-xl px-3.5 py-2.5 border border-white/10">
-              <p class="text-[11px] text-slate-400">Total Outflows</p>
-              <p id="heroTotalSpent" class="text-base sm:text-lg font-bold text-rose-400 tabular-nums">₱6,109.18</p>
-              <p class="text-[10px] text-slate-400">Daily + Loans + Thesis</p>
+              <p class="text-[11px] text-slate-400">Total Spent & Paid</p>
+              <p id="heroTotalSpent" class="text-base sm:text-lg font-bold text-rose-400 tabular-nums">₱0.00</p>
+              <p class="text-[10px] text-slate-400">Daily + Bills & Loans</p>
             </div>
           </div>
         </div>
 
-        <!-- Where to Park Your Money Pill Guide -->
+        <!-- Editable Smart Wallet Router -->
         <div class="mt-5 pt-4 border-t border-slate-700/60">
-          <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Smart Wallet Router ("Where to Park It")</p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-            <div class="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 border border-white/5">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span class="text-slate-300 font-medium">Maya Goals</span>
-              </div>
-              <span id="routerMayaAmt" class="text-emerald-300 font-bold tabular-nums">₱913.10</span>
+          <div class="flex items-center justify-between mb-2.5">
+            <div>
+              <p class="text-[11px] uppercase tracking-wider text-slate-300 font-bold">Smart Wallet Router (Where to Park Your Money)</p>
+              <p class="text-[10px] text-slate-400">Tap Edit Wallets to customize your banks, e-wallets, or cash envelopes</p>
             </div>
-            <div class="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 border border-white/5">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span class="text-slate-300 font-medium">MariBank Bills</span>
-              </div>
-              <span id="routerMariBillsAmt" class="text-amber-300 font-bold tabular-nums">₱277.72</span>
-            </div>
-            <div class="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 border border-white/5">
-              <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-                <span class="text-slate-300 font-medium">MariBank / Cash</span>
-              </div>
-              <span id="routerPocketAmt" class="text-sky-300 font-bold tabular-nums">₱273.47/day</span>
-            </div>
+            <button onclick="openEditWalletsModal()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold border border-white/15 transition">
+              ✎ Edit Wallets
+            </button>
+          </div>
+          <div id="walletRouterGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <!-- Populated dynamically from state.wallets -->
           </div>
         </div>
       </div>
@@ -157,26 +145,26 @@
         <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
           <div class="flex items-center justify-between mb-1">
             <span id="cardSavingsLabel" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">50% SAVINGS</span>
-            <span id="dailySavingsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 tabular-nums">₱273.47/day</span>
+            <span id="dailySavingsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 tabular-nums">₱0.00/day</span>
           </div>
-          <p id="bucketSavingsTarget" class="text-xl font-bold tabular-nums mt-1">₱2,734.65</p>
-          <p id="savingsGoalSubText" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Goal: ₱5,469.30/mo</p>
+          <p id="bucketSavingsTarget" class="text-xl font-bold tabular-nums mt-1">₱0.00</p>
+          <p id="savingsGoalSubText" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Monthly Target: ₱0.00</p>
           <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="savingsProgressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 44%"></div>
+            <div id="savingsProgressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
           </div>
-          <p id="savingsNoteText" class="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">Recovers to full target on Days 11–20</p>
+          <p id="savingsNoteText" class="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">0% of monthly target funded</p>
         </div>
 
         <!-- Needs Card -->
         <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
           <div class="flex items-center justify-between mb-1">
             <span id="cardNeedsLabel" class="text-xs font-semibold text-sky-600 dark:text-sky-400">30% NEEDS</span>
-            <span id="dailyNeedsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 tabular-nums">₱164.08/day</span>
+            <span id="dailyNeedsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 tabular-nums">₱0.00/day</span>
           </div>
-          <p id="bucketNeedsLeft" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">+₱813.80</p>
-          <p id="bucketNeedsSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Spent ₱827.00 / ₱1,640.80</p>
+          <p id="bucketNeedsLeft" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">₱0.00</p>
+          <p id="bucketNeedsSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Spent ₱0.00 / ₱0.00</p>
           <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="needsProgressBar" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 50%"></div>
+            <div id="needsProgressBar" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
           </div>
           <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">Food, commute & essentials</p>
         </div>
@@ -185,28 +173,28 @@
         <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
           <div class="flex items-center justify-between mb-1">
             <span id="cardWantsLabel" class="text-xs font-semibold text-purple-600 dark:text-purple-400">20% WANTS</span>
-            <span id="dailyWantsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 tabular-nums">₱109.39/day</span>
+            <span id="dailyWantsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 tabular-nums">₱0.00/day</span>
           </div>
-          <p id="bucketWantsLeft" class="text-xl font-bold text-rose-600 dark:text-rose-400 tabular-nums mt-1">-₱551.10</p>
-          <p id="bucketWantsSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Spent ₱1,645.00 / ₱1,093.90</p>
+          <p id="bucketWantsLeft" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">₱0.00</p>
+          <p id="bucketWantsSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Spent ₱0.00 / ₱0.00</p>
           <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="wantsProgressBar" class="bg-rose-500 h-full rounded-full transition-all duration-300" style="width: 100%"></div>
+            <div id="wantsProgressBar" class="bg-purple-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
           </div>
-          <p id="combinedRolloverBadge" class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-1.5 tabular-nums">Net Daily Rollover: +₱262.70</p>
+          <p id="combinedRolloverBadge" class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-1.5 tabular-nums">Daily Rollover: ₱0.00</p>
         </div>
 
         <!-- Fixed Monthly Expenses Card -->
         <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">MONTHLY BILLS</span>
-            <span id="dailyBillsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 tabular-nums">₱153.07/day</span>
+            <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">BILLS & LOANS</span>
+            <span id="dailyBillsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 tabular-nums">₱0.00/day</span>
           </div>
-          <p id="bucketMonthlyBillsTotal" class="text-xl font-bold tabular-nums mt-1">₱3,061.40</p>
-          <p id="bucketBillsPaidSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Paid ₱3,171.62 + ₱465.56 payoff</p>
+          <p id="bucketMonthlyBillsTotal" class="text-xl font-bold tabular-nums mt-1">₱0.00</p>
+          <p id="bucketBillsPaidSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Paid this mo: ₱0.00</p>
           <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="billsProgressBar" class="bg-amber-500 h-full rounded-full transition-all duration-300" style="width: 91%"></div>
+            <div id="billsProgressBar" class="bg-amber-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
           </div>
-          <p id="unpaidBillsNote" class="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 tabular-nums">Unpaid left this mo: ₱277.72</p>
+          <p id="unpaidBillsNote" class="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 tabular-nums">Remaining due: ₱0.00</p>
         </div>
       </div>
     </section>
@@ -220,7 +208,7 @@
         Loans & Bills
       </button>
       <button onclick="switchTab('allocator')" id="tabBtn-allocator" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-        Edit Splits & Pay
+        Splits & Income
       </button>
     </nav>
 
@@ -230,25 +218,25 @@
       <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 sm:p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
-            <h3 class="text-sm sm:text-base font-bold">Log Daily Spend</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Working Days grant <span id="inlineWorkdayCap" class="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">₱273.47</span> allowance; "NW" days grant ₱0.00. Tap any row to edit.</p>
+            <h3 class="text-sm sm:text-base font-bold">Log Daily Spending</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Workdays add <span id="inlineWorkdayCap" class="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">₱0.00</span> daily allowance; Rest / Off Days add ₱0.00.</p>
           </div>
           <span id="rolloverHeaderPill" class="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
-            Cumulative Rollover: +₱262.70
+            Rollover Balance: ₱0.00
           </span>
         </div>
 
         <form id="addExpenseForm" onsubmit="handleAddExpense(event)" class="grid grid-cols-2 sm:grid-cols-12 gap-2.5">
           <div class="col-span-1 sm:col-span-2">
             <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Date</label>
-            <input type="text" id="expDate" placeholder="11/27/26" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <input type="text" id="expDate" placeholder="MM/DD/YY" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
 
           <div class="col-span-1 sm:col-span-3">
             <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Day Type</label>
             <select id="expDayType" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="WORK">Working Day (+Cap)</option>
-              <option value="NW">NW — No Work (₱0 Cap)</option>
+              <option value="WORK">Workday (+Allowance)</option>
+              <option value="NW">Rest / Off Day (₱0 Cap)</option>
             </select>
           </div>
 
@@ -264,12 +252,12 @@
 
           <div class="col-span-2 sm:col-span-3">
             <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Note (Optional)</label>
-            <input type="text" id="expNote" placeholder="e.g., food, fare" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <input type="text" id="expNote" placeholder="e.g., Lunch, commute" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
 
           <div class="col-span-2 sm:col-span-12">
             <button type="submit" class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-semibold text-sm py-2.5 px-4 shadow-sm transition">
-              + Add Daily Entry
+              + Log Day
             </button>
           </div>
         </form>
@@ -279,21 +267,21 @@
       <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark shadow-sm overflow-hidden">
         <div class="px-4 py-3 border-b border-surface-borderLight dark:border-surface-borderDark flex items-center justify-between">
           <div>
-            <h3 class="text-sm font-bold">Daily Spending Log</h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">Tap any row to edit date, amounts, or NW status</p>
+            <h3 class="text-sm font-bold">Daily Expense History</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Tap any row to edit amounts, day type, or notes</p>
           </div>
-          <span id="logSummaryCount" class="text-xs text-slate-500 dark:text-slate-400">12 days (10 Work, 2 NW)</span>
+          <span id="logSummaryCount" class="text-xs text-slate-500 dark:text-slate-400">0 days</span>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-surface-borderLight dark:border-surface-borderDark text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-900/40">
-                <th class="py-2.5 px-3 sm:px-4 font-semibold">Day</th>
+                <th class="py-2.5 px-3 sm:px-4 font-semibold">Date</th>
                 <th class="py-2.5 px-3 font-semibold text-right">Needs</th>
                 <th class="py-2.5 px-3 font-semibold text-right">Wants</th>
-                <th class="py-2.5 px-3 font-semibold text-right">Day Left (+/-)</th>
-                <th class="py-2.5 px-3 font-semibold text-right hidden sm:table-cell">Running Rollover</th>
+                <th class="py-2.5 px-3 font-semibold text-right">Day (+/-)</th>
+                <th class="py-2.5 px-3 font-semibold text-right hidden sm:table-cell">Rollover</th>
                 <th class="py-2.5 px-2 text-center w-16">Edit</th>
               </tr>
             </thead>
@@ -314,15 +302,15 @@
       <div class="rounded-2xl bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-sky-500/10 border border-emerald-500/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 class="text-sm font-bold flex items-center gap-1.5">
-            <span>⚡ Automatic Debt-Payoff Reallocation</span>
+            <span>⚡ Automatic Loan Payoff Reallocation</span>
           </h3>
           <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-            Tap <strong>Edit</strong> on any loan or bill to adjust amounts, or mark a loan <strong>"Pay Off Full"</strong> to permanently boost your daily allowances.
+            Mark a loan <strong>"Paid Off Forever"</strong> when settled in full—its monthly deduction is permanently removed and your daily Savings, Needs, and Wants budgets automatically increase.
           </p>
         </div>
         <div class="shrink-0 bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-surface-borderLight dark:border-surface-borderDark text-right">
-          <p class="text-[10px] uppercase tracking-wider text-slate-400">Active Monthly Fixed Bills</p>
-          <p id="activeMonthlyBillsDisplay" class="text-base font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">₱3,061.40</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-400">Active Monthly Bills</p>
+          <p id="activeMonthlyBillsDisplay" class="text-base font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">₱0.00</p>
         </div>
       </div>
 
@@ -333,21 +321,21 @@
 
       <!-- Add New Loan / Monthly Bill Form -->
       <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 sm:p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-        <h4 class="text-sm font-bold mb-3">Add Loan or Monthly Fixed Expense</h4>
+        <h4 class="text-sm font-bold mb-3">Add Monthly Bill, Loan, or Savings Commitment</h4>
         <form onsubmit="handleAddObligation(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
           <div class="sm:col-span-5">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Name</label>
-            <input type="text" id="newObName" placeholder="e.g., Shopee SPayLater / Wi-Fi" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Description</label>
+            <input type="text" id="newObName" placeholder="e.g., Internet, Installment Loan, School Fund" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div class="sm:col-span-3">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Monthly Due (₱)</label>
-            <input type="number" step="0.01" min="0" id="newObMonthly" placeholder="350.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Monthly Amount (₱)</label>
+            <input type="number" step="0.01" min="0" id="newObMonthly" placeholder="500.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div class="sm:col-span-2">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Category</label>
+            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Type</label>
             <select id="newObType" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="LOAN">Loan</option>
               <option value="BILL">Monthly Bill</option>
+              <option value="LOAN">Installment Loan</option>
             </select>
           </div>
           <div class="sm:col-span-2 flex items-end">
@@ -366,17 +354,17 @@
         <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-base font-bold">Customize Percentage Allocations</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Adjust your Savings / Needs / Wants % rules</p>
+              <h3 class="text-base font-bold">Budget Split & Wage Settings</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Customize your Savings, Needs, and Wants percentages</p>
             </div>
             <span id="pctTotalBadge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">Total: 100%</span>
           </div>
 
           <!-- Quick Preset Buttons -->
           <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="applyPreset(50, 30, 20)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">50 / 30 / 20 (Default)</button>
-            <button type="button" onclick="applyPreset(60, 25, 15)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">60 / 25 / 15 (Aggressive Save)</button>
-            <button type="button" onclick="applyPreset(40, 40, 20)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">40 / 40 / 20 (High Needs)</button>
+            <button type="button" onclick="applyPreset(50, 30, 20)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">50 / 30 / 20 Balanced</button>
+            <button type="button" onclick="applyPreset(60, 25, 15)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">60 / 25 / 15 High Save</button>
+            <button type="button" onclick="applyPreset(40, 40, 20)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">40 / 40 / 20 Essentials</button>
           </div>
 
           <!-- 3 Percentage Inputs -->
@@ -400,7 +388,7 @@
           <!-- Base Wage & Goal Settings -->
           <div class="grid grid-cols-2 gap-3 pt-2 border-t border-surface-borderLight dark:border-surface-borderDark">
             <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Base Daily Rate (₱)</label>
+              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Daily Wage / Rate (₱)</label>
               <input type="number" id="baseDailyWageInput" value="700" min="1" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
             <div>
@@ -408,8 +396,8 @@
               <input type="number" id="workdaysPerMonthInput" value="20" min="1" max="31" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
             <div class="col-span-2">
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Custom Savings Goal Target (₱) — e.g. Emergency / Thesis Fund</label>
-              <input type="number" id="customGoalTargetInput" value="5469.30" min="0" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Monthly Savings Goal Target (₱) — Leave 0 for auto</label>
+              <input type="number" id="customGoalTargetInput" value="0" min="0" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
           </div>
 
@@ -418,10 +406,10 @@
             <table class="w-full text-xs sm:text-sm tabular-nums">
               <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase text-slate-500 dark:text-slate-400">
                 <tr>
-                  <th class="py-2 px-3 text-left">Bucket</th>
-                  <th class="py-2 px-3 text-right">Daily</th>
-                  <th class="py-2 px-3 text-right">5-Day Transfer</th>
-                  <th class="py-2 px-3 text-right">20-Day Mo.</th>
+                  <th class="py-2 px-3 text-left">Category</th>
+                  <th class="py-2 px-3 text-right">Per Workday</th>
+                  <th class="py-2 px-3 text-right">5-Day Batch</th>
+                  <th class="py-2 px-3 text-right">Monthly</th>
                 </tr>
               </thead>
               <tbody id="rateBreakdownBody" class="divide-y divide-surface-borderLight dark:divide-surface-borderDark">
@@ -435,23 +423,23 @@
         <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm flex flex-col justify-between space-y-4">
           <div>
             <div class="flex items-center justify-between mb-1">
-              <h3 class="text-base font-bold">Logged Salary Payouts</h3>
+              <h3 class="text-base font-bold">Income & Payday Log</h3>
               <button type="button" onclick="quickAddDailyPay()" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 text-xs font-bold transition">
                 +1 Day Pay
               </button>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Record every 5-day payout or daily wage received</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Log every daily wage, weekly payout, or allowance received</p>
 
             <form onsubmit="handleAddPayout(event)" class="grid grid-cols-12 gap-2 mb-4">
               <div class="col-span-5">
-                <input type="text" id="payoutLabel" placeholder="e.g., Week 3 (5 Days)" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <input type="text" id="payoutLabel" placeholder="e.g., Week 1 Pay" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div class="col-span-4">
                 <input type="number" step="0.01" min="1" id="payoutAmount" placeholder="3500.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-xs sm:text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div class="col-span-3">
                 <button type="submit" class="w-full h-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm transition">
-                  + Log Pay
+                  + Add
                 </button>
               </div>
             </form>
@@ -462,8 +450,8 @@
           </div>
 
           <div class="pt-3 border-t border-surface-borderLight dark:border-surface-borderDark flex items-center justify-between text-xs">
-            <span class="text-slate-500 dark:text-slate-400">Transfer Rule:</span>
-            <span class="font-semibold text-emerald-600 dark:text-emerald-400">Batch every 5 working days (₱0 fee)</span>
+            <span class="text-slate-500 dark:text-slate-400">Transfer Tip:</span>
+            <span class="font-semibold text-emerald-600 dark:text-emerald-400">Batch transfers every 5 days to avoid fees</span>
           </div>
         </div>
       </div>
@@ -471,11 +459,11 @@
 
   </main>
 
-  <!-- Inline Edit Modal (For Daily Expenses & Loans/Bills) -->
+  <!-- Inline Edit Modal (For Daily Expenses, Loans/Bills & Wallets) -->
   <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="bg-white dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+    <div class="bg-white dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between">
-        <h3 id="editModalTitle" class="text-base font-bold">Edit Entry</h3>
+        <h3 id="editModalTitle" class="text-base font-bold">Edit</h3>
         <button onclick="closeEditModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
       </div>
       <div id="editModalBody" class="space-y-3"></div>
@@ -490,29 +478,29 @@
         <button onclick="closeShareModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400">
-        Share this tracker with classmates, friends, or across your own devices using encoded links or clean templates.
+        Send this app to friends or sync across your own devices using encoded links.
       </p>
 
       <div class="space-y-3">
         <!-- Option 1: Blank Template Link -->
         <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-surface-borderLight dark:border-surface-borderDark space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">1. Share Blank Student Template</span>
+            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">1. Share Clean App Link (For Friends)</span>
             <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-semibold">Privacy Safe</span>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Wipes your personal salary, loans, and daily logs—sharing only your percentage split rules and empty starter tables.</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Shares a completely clean starter tracker with zero personal numbers so anyone can set up their own budget.</p>
           <button onclick="copyShareLink('template')" class="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">
-            🔗 Copy Blank Template Link
+            🔗 Copy Clean App Link
           </button>
         </div>
 
         <!-- Option 2: Live Snapshot Link -->
         <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-surface-borderLight dark:border-surface-borderDark space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-sky-600 dark:text-sky-400">2. Share Current Snapshot Link</span>
+            <span class="text-xs font-bold text-sky-600 dark:text-sky-400">2. Share Current Setup & Data Link</span>
             <span class="text-[10px] px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-semibold">Sync Devices</span>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Encodes your current balances, loans, and daily logs into a URL hash so you can open your exact state on another browser.</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Encodes your custom wallets, split rules, and logs into a link so you can open your exact setup on another device.</p>
           <button onclick="copyShareLink('snapshot')" class="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition">
             🔗 Copy Snapshot Link (#data=...)
           </button>
@@ -520,7 +508,7 @@
 
         <!-- Option 3: Apple Notes Summary -->
         <button onclick="copyIphoneNotesSummary(); closeShareModal();" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold transition">
-          📋 Copy Text Summary for Apple Notes / Chat
+          📋 Copy Text Summary for Notes / Chat
         </button>
       </div>
     </div>
@@ -534,7 +522,7 @@
         <button onclick="closeBackupModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400">
-        Start a fresh monthly cycle while keeping paid-off loans permanently removed, or export your backup.
+        Start a fresh monthly cycle, load sample data to explore, or export your backup file.
       </p>
 
       <div class="grid grid-cols-1 gap-2.5">
@@ -542,7 +530,7 @@
           🗓 Start New Month Cycle (Keep Paid-Off Loans)
         </button>
         <button onclick="copyIphoneNotesSummary()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2">
-          <span>📋 Copy Summary for iPhone Notes</span>
+          <span>📋 Copy Summary for Apple Notes</span>
         </button>
         <button onclick="exportDataJSON()" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-semibold transition">
           ⬇ Download JSON Backup File
@@ -551,9 +539,14 @@
           ⬆ Restore from JSON Backup
           <input type="file" accept=".json" onchange="importDataJSON(event)" class="hidden" />
         </label>
-        <button onclick="confirmResetDefaults()" id="resetDefaultBtn" class="w-full py-2.5 px-4 rounded-xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition mt-1">
-          Reset to Conversation Baseline Data
-        </button>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="loadDemoTemplate()" class="py-2 px-3 rounded-xl border border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 text-xs font-semibold transition">
+            Load Sample Data
+          </button>
+          <button onclick="confirmResetDefaults()" id="resetDefaultBtn" class="py-2 px-3 rounded-xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition">
+            Clear All (Blank)
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -563,84 +556,136 @@
 
   <script>
     // =========================================================================
-    // 1. DEFAULT PRE-LOADED STATE (EXACT DATA FROM USER CONVERSATION)
+    // 1. UNIVERSAL DEFAULT STATE & SAMPLE DATA
     // =========================================================================
-    const STORAGE_KEY = 'pesoflow_student_budget_v2';
+    const STORAGE_KEY = 'pesoflow_universal_v3';
 
-    const DEFAULT_STATE = {
+    // Clean, universal starter template for anyone opening the app
+    const CLEAN_STARTER_STATE = {
       settings: {
         baseDailyWage: 700.00,
         workdaysPerMonth: 20,
         pctSavings: 50,
         pctNeeds: 30,
         pctWants: 20,
-        customGoalTarget: 5469.30,
+        customGoalTarget: 0,
         theme: 'dark'
       },
+      wallets: [
+        {
+          id: 'w_hub',
+          name: 'MariBank',
+          roleLabel: 'Main Hub & Bills',
+          routeType: 'BILLS_AND_HUB',
+          color: 'amber',
+          note: 'Free transfers & monthly bills reserve'
+        },
+        {
+          id: 'w_sav',
+          name: 'Maya Savings / Goals',
+          roleLabel: 'Savings Vault',
+          routeType: 'SAVINGS',
+          color: 'emerald',
+          note: 'Goal savings & emergency stash'
+        },
+        {
+          id: 'w_spend',
+          name: 'GCash / Cash',
+          roleLabel: 'Daily Needs & Wants',
+          routeType: 'DAILY_SPEND',
+          color: 'sky',
+          note: 'Daily food, commute & pocket money'
+        }
+      ],
+      payouts: [],
+      obligations: [],
+      expenses: []
+    };
+
+    // Universal sample dataset (for previewing or loading demo numbers)
+    const SAMPLE_DEMO_STATE = {
+      settings: {
+        baseDailyWage: 700.00,
+        workdaysPerMonth: 20,
+        pctSavings: 50,
+        pctNeeds: 30,
+        pctWants: 20,
+        customGoalTarget: 0,
+        theme: 'dark'
+      },
+      wallets: [
+        {
+          id: 'w_hub',
+          name: 'MariBank',
+          roleLabel: 'Main Hub & Bills',
+          routeType: 'BILLS_AND_HUB',
+          color: 'amber',
+          note: 'Free transfers & monthly bills reserve'
+        },
+        {
+          id: 'w_sav',
+          name: 'Maya Savings / Goals',
+          roleLabel: 'Savings Vault',
+          routeType: 'SAVINGS',
+          color: 'emerald',
+          note: 'Goal savings & emergency stash'
+        },
+        {
+          id: 'w_spend',
+          name: 'GCash / Cash',
+          roleLabel: 'Daily Needs & Wants',
+          routeType: 'DAILY_SPEND',
+          color: 'sky',
+          note: 'Daily food, commute & pocket money'
+        }
+      ],
       payouts: [
-        { id: 'p1', label: 'Week 1 (First 5 Working Days)', amount: 3800.00, workdays: 5 },
-        { id: 'p2', label: 'Week 2 (Days 6–10 Working Days)', amount: 3500.00, workdays: 5 }
+        { id: 'p1', label: 'Week 1 Payout (5 Workdays)', amount: 3500.00 },
+        { id: 'p2', label: 'Week 2 Payout (5 Workdays)', amount: 3500.00 }
       ],
       obligations: [
         {
           id: 'ob1',
-          name: 'Loan 1 (Monthly Installment)',
+          name: 'Installment Loan 1',
           type: 'LOAN',
-          monthlyAmount: 335.81,
+          monthlyAmount: 350.00,
           paidThisMonth: true,
-          amountPaidThisMonth: 335.81,
+          amountPaidThisMonth: 350.00,
           fullyPaidForever: false
         },
         {
           id: 'ob2',
-          name: 'Loan 2 (Monthly Installment)',
+          name: 'Small Online Loan (Settled)',
           type: 'LOAN',
-          monthlyAmount: 335.81,
+          monthlyAmount: 150.00,
           paidThisMonth: true,
-          amountPaidThisMonth: 335.81,
-          fullyPaidForever: false
-        },
-        {
-          id: 'ob3',
-          name: 'Loan 3 — TikTok PayLater (₱77.66/mo)',
-          type: 'LOAN',
-          monthlyAmount: 77.66,
-          paidThisMonth: true,
-          amountPaidThisMonth: 465.56,
+          amountPaidThisMonth: 450.00,
           fullyPaidForever: true
         },
         {
-          id: 'ob4',
-          name: 'November Thesis Contribution',
+          id: 'ob3',
+          name: 'Monthly Project / Savings Goal',
           type: 'BILL',
-          monthlyAmount: 2500.00,
+          monthlyAmount: 2000.00,
           paidThisMonth: true,
-          amountPaidThisMonth: 2500.00,
+          amountPaidThisMonth: 2000.00,
           fullyPaidForever: false
         },
         {
-          id: 'ob5',
-          name: 'Misc Monthly Bills / Load Buffer',
+          id: 'ob4',
+          name: 'Phone Load & Internet',
           type: 'BILL',
-          monthlyAmount: 277.72,
+          monthlyAmount: 300.00,
           paidThisMonth: false,
           amountPaidThisMonth: 0.00,
           fullyPaidForever: false
         }
       ],
       expenses: [
-        { id: 'e1', date: '11/15/26', dayType: 'WORK', needs: 31.00, wants: 109.00, note: '' },
-        { id: 'e2', date: '11/16/26', dayType: 'WORK', needs: 137.00, wants: 200.00, note: '' },
-        { id: 'e3', date: '11/17/26', dayType: 'WORK', needs: 38.00, wants: 100.00, note: '' },
-        { id: 'e4', date: '11/18/26', dayType: 'WORK', needs: 42.00, wants: 100.00, note: '' },
-        { id: 'e5', date: '11/19/26', dayType: 'WORK', needs: 28.00, wants: 38.00, note: '' },
-        { id: 'e6', date: '11/20/26', dayType: 'NW',   needs: 109.00, wants: 314.00, note: 'No Work day' },
-        { id: 'e7', date: '11/21/26', dayType: 'NW',   needs: 40.00, wants: 70.00, note: 'No Work day' },
-        { id: 'e8', date: '11/22/26', dayType: 'WORK', needs: 100.00, wants: 169.00, note: '' },
-        { id: 'e9', date: '11/23/26', dayType: 'WORK', needs: 140.00, wants: 189.00, note: '' },
-        { id: 'e10', date: '11/24/26', dayType: 'WORK', needs: 132.00, wants: 79.00, note: '' },
-        { id: 'e11', date: '11/25/26', dayType: 'WORK', needs: 0.00, wants: 100.00, note: '' },
-        { id: 'e12', date: '11/26/26', dayType: 'WORK', needs: 30.00, wants: 177.00, note: '' }
+        { id: 'e1', date: '11/22/26', dayType: 'WORK', needs: 85.00, wants: 60.00, note: 'Lunch & jeepney fare' },
+        { id: 'e2', date: '11/23/26', dayType: 'WORK', needs: 110.00, wants: 90.00, note: 'Meals & coffee' },
+        { id: 'e3', date: '11/24/26', dayType: 'NW',   needs: 50.00, wants: 120.00, note: 'Rest day snacks' },
+        { id: 'e4', date: '11/25/26', dayType: 'WORK', needs: 95.00, wants: 40.00, note: 'Commute & dinner' }
       ]
     };
 
@@ -649,16 +694,17 @@
     let newMonthConfirmStep = false;
 
     function loadState() {
-      // 1. Check URL Hash first for shared links (#data=... or #template=...)
+      // 1. Check URL Hash for shared links (#data=...)
       try {
         const hash = window.location.hash;
         if (hash && hash.startsWith('#data=')) {
           const encoded = decodeURIComponent(hash.slice(6));
           const parsed = JSON.parse(decodeURIComponent(escape(atob(encoded))));
           if (parsed && parsed.settings && parsed.expenses && parsed.obligations) {
+            parsed.wallets = parsed.wallets || JSON.parse(JSON.stringify(CLEAN_STARTER_STATE.wallets));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
             history.replaceState(null, '', window.location.pathname + window.location.search);
-            setTimeout(() => showToast('Loaded shared tracker snapshot!'), 300);
+            setTimeout(() => showToast('Loaded shared tracker setup!'), 300);
             return parsed;
           }
         }
@@ -666,16 +712,18 @@
         console.warn('Could not parse shared URL hash', e);
       }
 
-      // 2. Fallback to LocalStorage or Default Baseline
+      // 2. Load from LocalStorage or start with clean universal template
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        if (!raw) return JSON.parse(JSON.stringify(CLEAN_STARTER_STATE));
         const parsed = JSON.parse(raw);
-        // Ensure new settings fields exist if migrating from v1
-        parsed.settings = Object.assign({}, DEFAULT_STATE.settings, parsed.settings || {});
+        parsed.settings = Object.assign({}, CLEAN_STARTER_STATE.settings, parsed.settings || {});
+        if (!Array.isArray(parsed.wallets) || parsed.wallets.length === 0) {
+          parsed.wallets = JSON.parse(JSON.stringify(CLEAN_STARTER_STATE.wallets));
+        }
         return parsed;
       } catch (e) {
-        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        return JSON.parse(JSON.stringify(CLEAN_STARTER_STATE));
       }
     }
 
@@ -688,7 +736,7 @@
     }
 
     // =========================================================================
-    // 2. CORE FINANCIAL CALCULATION ENGINE (SUPPORTS DYNAMIC % SPLITS)
+    // 2. CORE FINANCIAL CALCULATION ENGINE
     // =========================================================================
     function formatPHP(num) {
       const val = Number(num) || 0;
@@ -815,31 +863,32 @@
       }
 
       // Hero Dashboard
+      document.getElementById('heroCycleBadge').textContent = `${m.loggedWorkdays} Workday${m.loggedWorkdays === 1 ? '' : 's'} Logged`;
       document.getElementById('heroCashLeft').textContent = formatPHP(m.actualCashLeft);
       document.getElementById('heroCashLeft').className = `text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight ${m.actualCashLeft >= 0 ? 'text-white' : 'text-rose-400'}`;
 
       if (m.unpaidThisMonthObligations > 0) {
-        document.getElementById('heroPureNetNote').textContent = `(${formatPHP(m.pureNetAfterRemainingBills)} after ${formatPHP(m.unpaidThisMonthObligations)} unpaid bill)`;
+        document.getElementById('heroPureNetNote').textContent = `(${formatPHP(m.pureNetAfterRemainingBills)} net after ${formatPHP(m.unpaidThisMonthObligations)} unpaid bills)`;
+      } else if (state.obligations.length > 0) {
+        document.getElementById('heroPureNetNote').textContent = `(All monthly bills paid ✓)`;
       } else {
-        document.getElementById('heroPureNetNote').textContent = `(All monthly obligations paid ✓)`;
+        document.getElementById('heroPureNetNote').textContent = ``;
       }
 
       document.getElementById('heroTotalEarned').textContent = formatPHP(m.totalSalaryEarned);
-      document.getElementById('heroWorkdaysCount').textContent = `${m.loggedWorkdays} workdays logged`;
+      document.getElementById('heroWorkdaysCount').textContent = `${state.payouts.length} payout${state.payouts.length === 1 ? '' : 's'} logged`;
       document.getElementById('heroTotalSpent').textContent = formatPHP(m.totalOutflows);
-
-      // Smart Wallet Router
-      document.getElementById('routerMayaAmt').textContent = formatPHP(Math.max(0, m.pureNetAfterRemainingBills));
-      document.getElementById('routerMariBillsAmt').textContent = formatPHP(m.unpaidThisMonthObligations);
-      document.getElementById('routerPocketAmt').textContent = `${formatPHP(m.dailyPocketCap)}/day`;
 
       const debtBadge = document.getElementById('debtFreeBadge');
       if (m.fullyPaidOffCount > 0) {
-        debtBadge.textContent = `${m.fullyPaidOffCount} Loan${m.fullyPaidOffCount > 1 ? 's' : ''} Fully Paid Off`;
+        debtBadge.textContent = `${m.fullyPaidOffCount} Loan${m.fullyPaidOffCount > 1 ? 's' : ''} Paid Off`;
         debtBadge.classList.remove('hidden');
       } else {
         debtBadge.classList.add('hidden');
       }
+
+      // Render Editable Smart Wallet Router
+      renderWalletRouter(m);
 
       // Dynamic Percentage Labels on Bucket Cards
       document.getElementById('cardSavingsLabel').textContent = `${state.settings.pctSavings}% SAVINGS`;
@@ -849,10 +898,10 @@
       // 4 Bucket Cards
       document.getElementById('dailySavingsRateBadge').textContent = `${formatPHP(m.dailySavingsRate)}/day`;
       document.getElementById('bucketSavingsTarget').textContent = formatPHP(m.earnedSavingsTarget);
-      document.getElementById('savingsGoalSubText').textContent = `Goal: ${formatPHP(m.activeGoalTarget)}/mo`;
+      document.getElementById('savingsGoalSubText').textContent = `Monthly Target: ${formatPHP(m.activeGoalTarget)}`;
       const savingsRatio = m.activeGoalTarget > 0 ? Math.min(100, Math.max(0, (Math.max(0, m.pureNetAfterRemainingBills) / m.activeGoalTarget) * 100)) : 0;
       document.getElementById('savingsProgressBar').style.width = `${savingsRatio.toFixed(0)}%`;
-      document.getElementById('savingsNoteText').textContent = `${savingsRatio.toFixed(0)}% of monthly goal funded`;
+      document.getElementById('savingsNoteText').textContent = `${savingsRatio.toFixed(0)}% of monthly target funded`;
 
       document.getElementById('dailyNeedsRateBadge').textContent = `${formatPHP(m.dailyNeedsRate)}/day`;
       const needsLeftEl = document.getElementById('bucketNeedsLeft');
@@ -871,36 +920,36 @@
       document.getElementById('wantsProgressBar').style.width = `${wantsPct.toFixed(0)}%`;
 
       const rolloverBadge = document.getElementById('combinedRolloverBadge');
-      rolloverBadge.textContent = `Net Daily Rollover: ${formatSignedPHP(m.netDailyRollover)}`;
+      rolloverBadge.textContent = `Daily Rollover: ${formatSignedPHP(m.netDailyRollover)}`;
       rolloverBadge.className = `text-[10px] font-medium mt-1.5 tabular-nums ${m.netDailyRollover >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`;
 
       document.getElementById('dailyBillsRateBadge').textContent = `${formatPHP(m.dailyBillsRate)}/day`;
       document.getElementById('bucketMonthlyBillsTotal').textContent = formatPHP(m.activeMonthlyBills);
-      document.getElementById('bucketBillsPaidSub').textContent = `Paid out: ${formatPHP(m.totalObligationsPaidOut)}`;
+      document.getElementById('bucketBillsPaidSub').textContent = `Paid this mo: ${formatPHP(m.totalObligationsPaidOut)}`;
       const billsPct = m.activeMonthlyBills > 0 ? Math.min(100, ((m.activeMonthlyBills - m.unpaidThisMonthObligations) / m.activeMonthlyBills) * 100) : 100;
       document.getElementById('billsProgressBar').style.width = `${billsPct.toFixed(0)}%`;
       document.getElementById('unpaidBillsNote').textContent = m.unpaidThisMonthObligations > 0
-        ? `Unpaid left this mo: ${formatPHP(m.unpaidThisMonthObligations)}`
+        ? `Remaining due: ${formatPHP(m.unpaidThisMonthObligations)}`
         : `All recurring bills covered ✓`;
 
       // Tab 1: Tracker
       document.getElementById('inlineWorkdayCap').textContent = formatPHP(m.dailyPocketCap);
       const headerPill = document.getElementById('rolloverHeaderPill');
-      headerPill.textContent = `Cumulative Rollover: ${formatSignedPHP(m.netDailyRollover)}`;
+      headerPill.textContent = `Rollover Balance: ${formatSignedPHP(m.netDailyRollover)}`;
       headerPill.className = `self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold border tabular-nums ${
         m.netDailyRollover >= 0
           ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
           : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
       }`;
 
-      document.getElementById('logSummaryCount').textContent = `${state.expenses.length} days (${m.loggedWorkdays} Work, ${m.loggedNWDays} NW)`;
+      document.getElementById('logSummaryCount').textContent = `${state.expenses.length} day${state.expenses.length === 1 ? '' : 's'} (${m.loggedWorkdays} Work, ${m.loggedNWDays} Off)`;
       renderExpenseTable(m);
 
       // Tab 2: Loans & Bills
       document.getElementById('activeMonthlyBillsDisplay').textContent = formatPHP(m.activeMonthlyBills);
       renderObligationsList();
 
-      // Tab 3: Paycheck Split & Percentages
+      // Tab 3: Splits & Income
       document.getElementById('pctSavingsInput').value = state.settings.pctSavings;
       document.getElementById('pctNeedsInput').value = state.settings.pctNeeds;
       document.getElementById('pctWantsInput').value = state.settings.pctWants;
@@ -911,9 +960,91 @@
       renderPayoutsList();
     }
 
+    function getWalletRouteMetrics(w, m) {
+      switch (w.routeType) {
+        case 'BILLS_AND_HUB':
+          return {
+            primary: formatPHP(m.unpaidThisMonthObligations),
+            sub: `Unpaid bills reserve • ${formatPHP(m.dailyBillsRate)}/day`
+          };
+        case 'SAVINGS':
+          return {
+            primary: formatPHP(Math.max(0, m.pureNetAfterRemainingBills)),
+            sub: `Net savings • ${formatPHP(m.dailySavingsRate)}/day`
+          };
+        case 'DAILY_SPEND':
+          return {
+            primary: `${formatPHP(m.dailyPocketCap)}/day`,
+            sub: `Needs ${formatPHP(m.dailyNeedsRate)} + Wants ${formatPHP(m.dailyWantsRate)}`
+          };
+        case 'NEEDS_ONLY':
+          return {
+            primary: `${formatPHP(m.dailyNeedsRate)}/day`,
+            sub: `Essentials allowance (${state.settings.pctNeeds}%)`
+          };
+        case 'WANTS_ONLY':
+          return {
+            primary: `${formatPHP(m.dailyWantsRate)}/day`,
+            sub: `Lifestyle allowance (${state.settings.pctWants}%)`
+          };
+        default:
+          return {
+            primary: `${formatPHP(m.dailySavingsRate * 5)}/wk`,
+            sub: escapeHtml(w.note || 'Custom stash')
+          };
+      }
+    }
+
+    function renderWalletRouter(m) {
+      const grid = document.getElementById('walletRouterGrid');
+      const dotColors = {
+        emerald: 'bg-emerald-400',
+        amber: 'bg-amber-400',
+        sky: 'bg-sky-400',
+        purple: 'bg-purple-400'
+      };
+      const textColors = {
+        emerald: 'text-emerald-300',
+        amber: 'text-amber-300',
+        sky: 'text-sky-300',
+        purple: 'text-purple-300'
+      };
+
+      grid.innerHTML = state.wallets.map(w => {
+        const info = getWalletRouteMetrics(w, m);
+        const dot = dotColors[w.color] || 'bg-emerald-400';
+        const txt = textColors[w.color] || 'text-emerald-300';
+        return `
+          <div onclick="openEditWalletsModal()" class="cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl px-3.5 py-2.5 border border-white/10 transition flex flex-col justify-between gap-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2 h-2 rounded-full shrink-0 ${dot}"></span>
+                <span class="text-white font-bold truncate">${escapeHtml(w.name)}</span>
+              </div>
+              <span class="${txt} font-extrabold tabular-nums shrink-0">${info.primary}</span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400">
+              <span class="truncate">${escapeHtml(w.roleLabel)}</span>
+              <span class="truncate ml-2">${info.sub}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderExpenseTable(m) {
       const tbody = document.getElementById('expenseTableBody');
       tbody.innerHTML = '';
+
+      if (state.expenses.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 px-4 text-center text-xs text-slate-400">
+              No daily expenses logged yet. Add your first day above!
+            </td>
+          </tr>
+        `;
+      }
 
       let runningRollover = 0;
 
@@ -935,7 +1066,7 @@
           <td class="py-2.5 px-3 sm:px-4 font-medium">
             <div class="flex items-center gap-1.5">
               <span>${escapeHtml(exp.date)}</span>
-              ${isNW ? '<span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">NW</span>' : ''}
+              ${isNW ? '<span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">OFF</span>' : ''}
             </div>
             ${exp.note ? `<div class="text-[10px] text-slate-400 truncate max-w-[120px]">${escapeHtml(exp.note)}</div>` : ''}
           </td>
@@ -973,6 +1104,15 @@
     function renderObligationsList() {
       const container = document.getElementById('obligationsList');
       container.innerHTML = '';
+
+      if (state.obligations.length === 0) {
+        container.innerHTML = `
+          <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-6 border border-surface-borderLight dark:border-surface-borderDark text-center text-xs text-slate-400">
+            No monthly bills or installment loans added yet. Add recurring commitments below so your daily allowances automatically reserve money for them.
+          </div>
+        `;
+        return;
+      }
 
       state.obligations.forEach(ob => {
         const card = document.createElement('div');
@@ -1037,21 +1177,21 @@
       const tbody = document.getElementById('rateBreakdownBody');
       const rows = [
         {
-          label: 'Fixed Monthly Bills',
+          label: 'Monthly Bills & Loans',
           color: 'text-amber-600 dark:text-amber-400',
           daily: m.dailyBillsRate,
           weekly: m.dailyBillsRate * 5,
           monthly: m.activeMonthlyBills
         },
         {
-          label: `${state.settings.pctSavings}% Savings Lock`,
+          label: `${state.settings.pctSavings}% Savings`,
           color: 'text-emerald-600 dark:text-emerald-400',
           daily: m.dailySavingsRate,
           weekly: m.dailySavingsRate * 5,
           monthly: m.monthlyAfterBills * m.savRatio
         },
         {
-          label: `${state.settings.pctNeeds}% Daily Needs`,
+          label: `${state.settings.pctNeeds}% Needs`,
           color: 'text-sky-600 dark:text-sky-400',
           daily: m.dailyNeedsRate,
           weekly: m.dailyNeedsRate * 5,
@@ -1075,7 +1215,7 @@
         </tr>
       `).join('') + `
         <tr class="bg-slate-50 dark:bg-slate-900/60 font-bold">
-          <td class="py-2.5 px-3">Total Gross</td>
+          <td class="py-2.5 px-3">Total Income</td>
           <td class="py-2.5 px-3 text-right">${formatPHP(state.settings.baseDailyWage)}</td>
           <td class="py-2.5 px-3 text-right">${formatPHP(state.settings.baseDailyWage * 5)}</td>
           <td class="py-2.5 px-3 text-right">${formatPHP(m.monthlyGrossTarget)}</td>
@@ -1085,6 +1225,10 @@
 
     function renderPayoutsList() {
       const container = document.getElementById('payoutHistoryList');
+      if (state.payouts.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No income logged yet. Tap "+1 Day Pay" or add a payday above.</p>`;
+        return;
+      }
       container.innerHTML = state.payouts.map(p => `
         <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-surface-borderLight dark:border-surface-borderDark text-xs sm:text-sm">
           <span class="font-medium">${escapeHtml(p.label)}</span>
@@ -1097,7 +1241,119 @@
     }
 
     // =========================================================================
-    // 4. INLINE EDITING, PERCENTAGES & AUTOMATION HANDLERS
+    // 4. EDITABLE SMART WALLET ROUTER MODAL
+    // =========================================================================
+    function openEditWalletsModal() {
+      document.getElementById('editModalTitle').textContent = 'Customize Smart Wallet Router';
+      renderWalletEditorForm();
+      const modal = document.getElementById('editModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function renderWalletEditorForm() {
+      const routeOptions = [
+        { val: 'BILLS_AND_HUB', label: 'Main Hub & Unpaid Bills Reserve' },
+        { val: 'SAVINGS', label: 'Savings & Goal Vault' },
+        { val: 'DAILY_SPEND', label: 'Daily Needs + Wants Pocket' },
+        { val: 'NEEDS_ONLY', label: 'Daily Needs Only' },
+        { val: 'WANTS_ONLY', label: 'Daily Wants Only' },
+        { val: 'CUSTOM', label: 'Custom / Extra Stash' }
+      ];
+
+      const colorOptions = [
+        { val: 'amber', label: 'Amber' },
+        { val: 'emerald', label: 'Emerald' },
+        { val: 'sky', label: 'Sky Blue' },
+        { val: 'purple', label: 'Purple' }
+      ];
+
+      const itemsHtml = state.wallets.map((w, idx) => `
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-surface-borderLight dark:border-surface-borderDark space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Wallet / Account #${idx + 1}</span>
+            ${state.wallets.length > 1 ? `<button type="button" onclick="removeWalletSlot('${w.id}')" class="text-xs text-rose-500 hover:underline">Remove</button>` : ''}
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-500 mb-0.5">Bank / App Name</label>
+              <input type="text" data-wid="${w.id}" data-field="name" value="${escapeHtml(w.name)}" placeholder="e.g. MariBank" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2.5 py-1.5 text-xs font-semibold" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500 mb-0.5">Role / Label</label>
+              <input type="text" data-wid="${w.id}" data-field="roleLabel" value="${escapeHtml(w.roleLabel)}" placeholder="e.g. Main Hub & Bills" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2.5 py-1.5 text-xs" />
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+              <label class="block text-[10px] text-slate-500 mb-0.5">Auto-Calculate Amount From</label>
+              <select data-wid="${w.id}" data-field="routeType" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2 py-1.5 text-xs">
+                ${routeOptions.map(o => `<option value="${o.val}" ${w.routeType === o.val ? 'selected' : ''}>${o.label}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-500 mb-0.5">Badge Color</label>
+              <select data-wid="${w.id}" data-field="color" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2 py-1.5 text-xs">
+                ${colorOptions.map(c => `<option value="${c.val}" ${w.color === c.val ? 'selected' : ''}>${c.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('editModalBody').innerHTML = `
+        <form onsubmit="saveWalletsForm(event)" class="space-y-3">
+          ${itemsHtml}
+          <button type="button" onclick="addWalletSlot()" class="w-full py-2 rounded-xl border border-dashed border-slate-400/50 text-xs font-semibold text-slate-500 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-500 transition">
+            + Add Another Bank / Wallet
+          </button>
+          <div class="flex gap-2 pt-2">
+            <button type="button" onclick="closeEditModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Cancel</button>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Save Wallets</button>
+          </div>
+        </form>
+      `;
+    }
+
+    function syncWalletInputsToMemory() {
+      document.querySelectorAll('.wallet-inp').forEach(el => {
+        const id = el.getAttribute('data-wid');
+        const field = el.getAttribute('data-field');
+        const w = state.wallets.find(x => x.id === id);
+        if (w) w[field] = el.value;
+      });
+    }
+
+    function addWalletSlot() {
+      syncWalletInputsToMemory();
+      state.wallets.push({
+        id: 'w_' + Date.now(),
+        name: 'New Wallet / Cash',
+        roleLabel: 'Extra Stash',
+        routeType: 'CUSTOM',
+        color: 'purple',
+        note: 'Custom reserve'
+      });
+      renderWalletEditorForm();
+    }
+
+    function removeWalletSlot(id) {
+      syncWalletInputsToMemory();
+      state.wallets = state.wallets.filter(w => w.id !== id);
+      renderWalletEditorForm();
+    }
+
+    function saveWalletsForm(e) {
+      e.preventDefault();
+      syncWalletInputsToMemory();
+      saveState();
+      renderAll();
+      closeEditModal();
+      showToast('Updated Smart Wallet Router!');
+    }
+
+    // =========================================================================
+    // 5. INLINE EDITING, PERCENTAGES & AUTOMATION HANDLERS
     // =========================================================================
     function handlePctInput() {
       const s = parseFloat(document.getElementById('pctSavingsInput').value) || 0;
@@ -1132,7 +1388,7 @@
       document.getElementById('pctTotalBadge').className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums';
       saveState();
       renderAll();
-      showToast(`Applied ${s}/${n}/${w} allocation split!`);
+      showToast(`Applied ${s}/${n}/${w} budget split!`);
     }
 
     function openEditExpenseModal(id) {
@@ -1150,8 +1406,8 @@
             <div>
               <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Day Type</label>
               <select id="editExpType" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm">
-                <option value="WORK" ${exp.dayType === 'WORK' ? 'selected' : ''}>Working Day (+Cap)</option>
-                <option value="NW" ${exp.dayType === 'NW' ? 'selected' : ''}>NW — No Work (₱0 Cap)</option>
+                <option value="WORK" ${exp.dayType === 'WORK' ? 'selected' : ''}>Workday (+Allowance)</option>
+                <option value="NW" ${exp.dayType === 'NW' ? 'selected' : ''}>Rest / Off Day (₱0 Cap)</option>
               </select>
             </div>
           </div>
@@ -1167,7 +1423,7 @@
           </div>
           <div>
             <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Note</label>
-            <input type="text" id="editExpNote" value="${escapeHtml(exp.note || '')}" placeholder="e.g., food, fare" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm" />
+            <input type="text" id="editExpNote" value="${escapeHtml(exp.note || '')}" placeholder="e.g., Lunch, commute" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm" />
           </div>
           <div class="flex gap-2 pt-2">
             <button type="button" onclick="closeEditModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Cancel</button>
@@ -1192,7 +1448,7 @@
       saveState();
       renderAll();
       closeEditModal();
-      showToast('Updated daily log entry');
+      showToast('Updated daily entry');
     }
 
     function openEditObligationModal(id) {
@@ -1203,7 +1459,7 @@
       document.getElementById('editModalBody').innerHTML = `
         <form onsubmit="saveEditedObligation(event, '${ob.id}')" class="space-y-3">
           <div>
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Name</label>
+            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Description</label>
             <input type="text" id="editObName" value="${escapeHtml(ob.name)}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm" />
           </div>
           <div class="grid grid-cols-2 gap-2.5">
@@ -1260,7 +1516,7 @@
       saveState();
       renderAll();
       closeEditModal();
-      showToast('Updated obligation & recalculated caps');
+      showToast('Updated item & recalculated allowances');
     }
 
     function closeEditModal() {
@@ -1286,21 +1542,20 @@
         note
       });
 
-      document.getElementById('expDate').value = '';
       document.getElementById('expNeeds').value = '';
       document.getElementById('expWants').value = '';
       document.getElementById('expNote').value = '';
 
       saveState();
       renderAll();
-      showToast(`Logged ${date} (${dayType === 'WORK' ? 'Working Day' : 'NW'})`);
+      showToast(`Logged ${date} (${dayType === 'WORK' ? 'Workday' : 'Off Day'})`);
     }
 
     function deleteExpense(id) {
       state.expenses = state.expenses.filter(e => e.id !== id);
       saveState();
       renderAll();
-      showToast('Expense entry removed');
+      showToast('Entry removed');
     }
 
     function togglePaidThisMonth(id) {
@@ -1327,7 +1582,7 @@
         if (!ob.amountPaidThisMonth || ob.amountPaidThisMonth === 0) {
           ob.amountPaidThisMonth = ob.monthlyAmount;
         }
-        showToast(`🎉 Loan paid off! Daily budgets automatically increased.`);
+        showToast(`🎉 Loan paid off! Daily allowances automatically increased.`);
       } else {
         showToast(`Restored "${ob.name}" to monthly recurring bills`);
       }
@@ -1363,7 +1618,7 @@
       state.obligations = state.obligations.filter(o => o.id !== id);
       saveState();
       renderAll();
-      showToast('Obligation deleted & budget updated');
+      showToast('Item removed & budget updated');
     }
 
     function updateBaseSettings() {
@@ -1375,7 +1630,7 @@
       state.settings.customGoalTarget = goal;
       saveState();
       renderAll();
-      showToast('Updated base wage & savings goal');
+      showToast('Updated wage & savings goal');
     }
 
     function quickAddDailyPay() {
@@ -1383,12 +1638,12 @@
       const nextNum = state.payouts.length + 1;
       state.payouts.push({
         id: 'pay_' + Date.now(),
-        label: `Daily Shift #${nextNum} (1 Day)`,
+        label: `Workday Pay #${nextNum}`,
         amount: rate
       });
       saveState();
       renderAll();
-      showToast(`Added +${formatPHP(rate)} daily pay!`);
+      showToast(`Added +${formatPHP(rate)} income!`);
     }
 
     function handleAddPayout(e) {
@@ -1404,18 +1659,18 @@
       document.getElementById('payoutAmount').value = '';
       saveState();
       renderAll();
-      showToast(`Added payout: ${formatPHP(amount)}`);
+      showToast(`Logged income: ${formatPHP(amount)}`);
     }
 
     function deletePayout(id) {
       state.payouts = state.payouts.filter(p => p.id !== id);
       saveState();
       renderAll();
-      showToast('Payout removed');
+      showToast('Income entry removed');
     }
 
     // =========================================================================
-    // 5. SHARING, CYCLE RESET, THEME & BACKUP
+    // 6. SHARING, CYCLE RESET, THEME & BACKUP
     // =========================================================================
     function openShareModal() {
       const modal = document.getElementById('shareModal');
@@ -1430,31 +1685,21 @@
     }
 
     function copyShareLink(mode) {
-      let payload;
-      if (mode === 'template') {
-        payload = {
-          settings: Object.assign({}, state.settings, { customGoalTarget: 0 }),
-          payouts: [{ id: 'p_sample', label: 'Week 1 Payout', amount: 0 }],
-          obligations: [
-            { id: 'ob_sample1', name: 'Sample Monthly Bill / Load', type: 'BILL', monthlyAmount: 500, paidThisMonth: false, amountPaidThisMonth: 0, fullyPaidForever: false }
-          ],
-          expenses: []
-        };
-      } else {
-        payload = state;
-      }
-
-      const jsonStr = JSON.stringify(payload);
-      const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
       const baseUrl = window.location.href.split('#')[0];
-      const shareUrl = `${baseUrl}#data=${encodeURIComponent(b64)}`;
+      let shareUrl = baseUrl;
+
+      if (mode === 'snapshot') {
+        const jsonStr = JSON.stringify(state);
+        const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+        shareUrl = `${baseUrl}#data=${encodeURIComponent(b64)}`;
+      }
 
       const helper = document.getElementById('clipboardHelper');
       helper.value = shareUrl;
       helper.select();
       document.execCommand('copy');
       closeShareModal();
-      showToast(mode === 'template' ? 'Copied Blank Template Link!' : 'Copied Snapshot Link!');
+      showToast(mode === 'template' ? 'Copied Clean App Link!' : 'Copied Snapshot Link!');
     }
 
     function confirmNewMonthCycle() {
@@ -1464,7 +1709,6 @@
         btn.textContent = 'Tap Again to Confirm New Month Reset';
         return;
       }
-      // Keep paid-off loans permanently removed, reset active bills to unpaid this month, clear old month payouts & logs
       state.payouts = [];
       state.expenses = [];
       state.obligations = state.obligations.map(ob => {
@@ -1475,6 +1719,14 @@
       renderAll();
       closeBackupModal();
       showToast('Started fresh month! Paid-off loans kept removed.');
+    }
+
+    function loadDemoTemplate() {
+      state = JSON.parse(JSON.stringify(SAMPLE_DEMO_STATE));
+      saveState();
+      renderAll();
+      closeBackupModal();
+      showToast('Loaded sample budget & loan data');
     }
 
     function switchTab(tabName) {
@@ -1497,7 +1749,7 @@
     function openBackupModal() {
       resetConfirmStep = false;
       newMonthConfirmStep = false;
-      document.getElementById('resetDefaultBtn').textContent = 'Reset to Conversation Baseline Data';
+      document.getElementById('resetDefaultBtn').textContent = 'Clear All (Blank)';
       document.getElementById('newMonthBtn').textContent = '🗓 Start New Month Cycle (Keep Paid-Off Loans)';
       const modal = document.getElementById('backupModal');
       modal.classList.remove('hidden');
@@ -1514,15 +1766,15 @@
       const m = calculateMetrics();
       const lines = [
         `PESOFLOW BUDGET SUMMARY (${state.settings.pctSavings}/${state.settings.pctNeeds}/${state.settings.pctWants})`,
-        `Total Earned: ${formatPHP(m.totalSalaryEarned)} (${m.loggedWorkdays} Workdays)`,
-        `Cash Left On Hand: ${formatPHP(m.actualCashLeft)}`,
-        `Pure Net (after unpaid bills): ${formatPHP(m.pureNetAfterRemainingBills)}`,
+        `Total Income: ${formatPHP(m.totalSalaryEarned)} (${m.loggedWorkdays} Workdays)`,
+        `Cash On Hand: ${formatPHP(m.actualCashLeft)}`,
+        `Net After Unpaid Bills: ${formatPHP(m.pureNetAfterRemainingBills)}`,
         `---`,
         `DAILY TARGETS (Active Bills: ${formatPHP(m.activeMonthlyBills)}/mo)`,
         `${state.settings.pctSavings}% Savings: ${formatPHP(m.dailySavingsRate)}/day`,
         `${state.settings.pctNeeds}% Needs: ${formatPHP(m.dailyNeedsRate)}/day (Spent: ${formatPHP(m.totalNeedsSpent)})`,
         `${state.settings.pctWants}% Wants: ${formatPHP(m.dailyWantsRate)}/day (Spent: ${formatPHP(m.totalWantsSpent)})`,
-        `Net Rollover: ${formatSignedPHP(m.netDailyRollover)}`
+        `Rollover Balance: ${formatSignedPHP(m.netDailyRollover)}`
       ].join('\n');
 
       const helper = document.getElementById('clipboardHelper');
@@ -1530,7 +1782,7 @@
       helper.select();
       document.execCommand('copy');
       closeBackupModal();
-      showToast('Copied summary for iPhone Notes!');
+      showToast('Copied summary for Apple Notes!');
     }
 
     function exportDataJSON() {
@@ -1552,6 +1804,7 @@
         try {
           const parsed = JSON.parse(e.target.result);
           if (parsed && parsed.settings && parsed.expenses && parsed.obligations) {
+            parsed.wallets = parsed.wallets || JSON.parse(JSON.stringify(CLEAN_STARTER_STATE.wallets));
             state = parsed;
             saveState();
             renderAll();
@@ -1571,14 +1824,14 @@
       const btn = document.getElementById('resetDefaultBtn');
       if (!resetConfirmStep) {
         resetConfirmStep = true;
-        btn.textContent = 'Tap Again to Confirm Reset';
+        btn.textContent = 'Tap Again to Clear All';
         return;
       }
-      state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      state = JSON.parse(JSON.stringify(CLEAN_STARTER_STATE));
       saveState();
       renderAll();
       closeBackupModal();
-      showToast('Restored baseline conversation data');
+      showToast('Cleared all data to blank starter');
     }
 
     let toastTimer = null;
@@ -1602,8 +1855,18 @@
         .replace(/"/g, '&quot;');
     }
 
-    // Initialize on load
-    window.addEventListener('DOMContentLoaded', renderAll);
+    // Initialize date input to today's MM/DD/YY and render
+    window.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const yy = String(now.getFullYear()).slice(-2);
+      const dateInput = document.getElementById('expDate');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = `${mm}/${dd}/${yy}`;
+      }
+      renderAll();
+    });
   </script>
 </body>
 </html>
