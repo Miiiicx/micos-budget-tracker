@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>PesoFlow — 50/30/20 Budget & Loan Tracker</title>
 <style>
   :root {
@@ -38,10 +40,21 @@
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   h1 { font-size: 19px; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
   .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 7px 11px;
+    margin-bottom: 12px;
+    font-size: 11.5px;
+  }
   .btn-sm {
     background: var(--card-2);
     color: var(--text);
@@ -303,6 +316,11 @@
   </div>
 </header>
 
+<div class="status-bar" id="storage-status-bar">
+  <span id="storage-status-text" class="green">● Auto-saved on this device</span>
+  <span class="sub" id="last-saved-time">Ready</span>
+</div>
+
 <div class="tabs">
   <button class="tab active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab" id="tab-daily" onclick="switchTab('daily')">Daily Log</button>
@@ -443,7 +461,6 @@
       <span class="sub" id="log-count-badge">0 entries</span>
     </div>
 
-    <!-- MULTI-YEAR FILTER & SORT CONTROLS -->
     <div class="filter-grid">
       <div>
         <label>Month / Year</label>
@@ -548,19 +565,19 @@
     <div class="form-grid">
       <div>
         <label>Total Salary Earned So Far (₱)</label>
-        <input type="number" step="0.01" id="set-earned" onchange="saveSettings()" />
+        <input type="number" step="0.01" id="set-earned" oninput="saveSettings()" />
       </div>
       <div>
         <label>Daily Pay Rate (₱)</label>
-        <input type="number" step="0.01" id="set-rate" onchange="saveSettings()" />
+        <input type="number" step="0.01" id="set-rate" oninput="saveSettings()" />
       </div>
       <div>
         <label>Working Days per Month</label>
-        <input type="number" step="1" id="set-days" onchange="saveSettings()" />
+        <input type="number" step="1" id="set-days" oninput="saveSettings()" />
       </div>
       <div>
         <label>Transfer Batch (Workdays)</label>
-        <input type="number" step="1" id="set-batch" onchange="saveSettings()" />
+        <input type="number" step="1" id="set-batch" oninput="saveSettings()" />
       </div>
     </div>
   </div>
@@ -578,15 +595,15 @@
     <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
       <div>
         <label>Savings %</label>
-        <input type="number" step="1" id="set-pct-sav" onchange="saveSettings()" />
+        <input type="number" step="1" id="set-pct-sav" oninput="saveSettings()" />
       </div>
       <div>
         <label>Needs %</label>
-        <input type="number" step="1" id="set-pct-need" onchange="saveSettings()" />
+        <input type="number" step="1" id="set-pct-need" oninput="saveSettings()" />
       </div>
       <div>
         <label>Wants %</label>
-        <input type="number" step="1" id="set-pct-want" onchange="saveSettings()" />
+        <input type="number" step="1" id="set-pct-want" oninput="saveSettings()" />
       </div>
     </div>
   </div>
@@ -719,6 +736,7 @@
 const STORAGE_KEY = "pesoflow_universal_v2";
 const PAGE_SIZE = 15;
 let currentPage = 1;
+let storageAvailable = true;
 
 const BLANK_STATE = {
   earned: 0,
@@ -738,28 +756,64 @@ const BLANK_STATE = {
   archivedMonths: []
 };
 
+function checkStorageHealth() {
+  try {
+    const testKey = "__pesoflow_test__";
+    localStorage.setItem(testKey, "1");
+    localStorage.removeItem(testKey);
+    const ua = navigator.userAgent || "";
+    const isInApp = /FBAN|FBAV|Instagram|Messenger|Line|Twitter/i.test(ua);
+    const statusEl = document.getElementById("storage-status-text");
+    if (isInApp) {
+      statusEl.textContent = "⚠ In-App Browser — Tap ••• and Open in Safari so data saves!";
+      statusEl.className = "amber";
+    } else {
+      statusEl.textContent = "● Auto-saved on this device";
+      statusEl.className = "green";
+    }
+    return true;
+  } catch (e) {
+    storageAvailable = false;
+    const statusEl = document.getElementById("storage-status-text");
+    statusEl.textContent = "⚠ Private Mode detected — Switch off Private Browsing to save data";
+    statusEl.className = "red";
+    return false;
+  }
+}
+
 function loadInitialState() {
   const hash = window.location.hash || "";
   if (hash.startsWith("#data=")) {
     try {
       const decoded = JSON.parse(decodeURIComponent(atob(hash.slice(6))));
+      const merged = { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...decoded };
+      // CRITICAL FIX: Persist imported snapshot to localStorage BEFORE cleaning the URL hash!
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch (err) {}
       history.replaceState(null, "", window.location.pathname + window.location.search);
-      return { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...decoded };
+      return merged;
     } catch (e) {}
   }
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
       return { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...JSON.parse(saved) };
-    } catch (e) {}
-  }
+    }
+  } catch (e) {}
   return JSON.parse(JSON.stringify(BLANK_STATE));
 }
 
 let state = loadInitialState();
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    document.getElementById("last-saved-time").textContent = "Saved " + now;
+  } catch (e) {
+    document.getElementById("last-saved-time").textContent = "Save blocked (Private tab)";
+  }
 }
 
 function fmt(n) {
@@ -785,7 +839,6 @@ function closeModal(id) {
 }
 
 function parseDateValue(str) {
-  // Supports MM/DD/YY or MM/DD/YYYY or YYYY-MM-DD
   const parts = String(str || "").split(/[\/\-]/);
   if (parts.length === 3) {
     if (parts[0].length === 4) {
@@ -843,7 +896,6 @@ function render() {
   const wantDay = wantMo / state.workDaysPerMonth;
   const dailySpendCap = needDay + wantDay;
 
-  // Overall totals across current active cycle
   let allNeeds = 0, allWants = 0, allWorkCount = 0;
   state.logs.forEach(item => {
     allNeeds += Number(item.needs);
@@ -861,7 +913,6 @@ function render() {
   const cashLeft = state.earned - totDailySpent - totalPaidThisMonth;
   const pureNet = cashLeft - unpaidThisMonth;
 
-  // Populate dynamic Month/Year filter dropdown
   const monthSelect = document.getElementById("filter-month");
   const prevMonthVal = monthSelect.value;
   const monthSet = new Set();
@@ -873,7 +924,6 @@ function render() {
     monthSelect.value = prevMonthVal;
   }
 
-  // Filter & Sort logs for Daily Log table
   const fMonth = monthSelect.value;
   const fType = document.getElementById("filter-type").value;
   const sortMode = document.getElementById("sort-logs").value;
@@ -900,7 +950,6 @@ function render() {
     return 0;
   });
 
-  // Summary bar reflects current filter!
   let filtNeeds = 0, filtWants = 0, filtWork = 0;
   filteredLogs.forEach(item => {
     filtNeeds += Number(item.needs);
@@ -909,7 +958,6 @@ function render() {
   });
   const filtRollover = (filtWork * dailySpendCap) - (filtNeeds + filtWants);
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
   if (currentPage > totalPages) currentPage = totalPages;
   if (currentPage < 1) currentPage = 1;
@@ -954,7 +1002,6 @@ function render() {
     pager.classList.add("hidden");
   }
 
-  // Header & Overview metrics
   document.getElementById("hdr-sub").textContent = `${state.pctSav}/${state.pctNeed}/${state.pctWant} Split • ${fmt(state.dailyRate)}/day • ${state.workDaysPerMonth} workdays/mo`;
   document.getElementById("ov-earned").textContent = fmt(state.earned);
   document.getElementById("ov-workdays-logged").textContent = `${allWorkCount} workdays logged`;
@@ -967,7 +1014,6 @@ function render() {
   document.getElementById("ov-bills-paid").textContent = fmt(totalPaidThisMonth);
   document.getElementById("ov-bills-unpaid").textContent = `${fmt(unpaidThisMonth)} unpaid this mo`;
 
-  // Allotments
   document.getElementById("ov-bills-count").textContent = `${activeBills.length} active commitments`;
   document.getElementById("ov-fixed-mo").textContent = `${fmt(activeMonthlyBills)} / mo`;
   document.getElementById("ov-fixed-day").textContent = `${fmt(fixedDay)} / workday`;
@@ -994,7 +1040,6 @@ function render() {
   sumLeftEl.textContent = `${filtRollover >= 0 ? '+' : ''}${fmt(filtRollover)}`;
   sumLeftEl.className = filtRollover >= 0 ? "green" : "red";
 
-  // Render Smart Wallets
   const walletContainer = document.getElementById("wallet-cards");
   walletContainer.innerHTML = "";
   const colorMap = { amber: "var(--amber)", green: "var(--green)", blue: "var(--blue)", purple: "var(--purple)" };
@@ -1038,7 +1083,6 @@ function render() {
     walletContainer.appendChild(div);
   });
 
-  // Render Loans & Bills
   document.getElementById("loans-total-badge").textContent = `${fmt(activeMonthlyBills)}/mo`;
   const loansList = document.getElementById("loans-list");
   loansList.innerHTML = "";
@@ -1072,7 +1116,6 @@ function render() {
     loansList.appendChild(div);
   });
 
-  // Populate Settings tab
   document.getElementById("set-earned").value = state.earned;
   document.getElementById("set-rate").value = state.dailyRate;
   document.getElementById("set-days").value = state.workDaysPerMonth;
@@ -1210,7 +1253,6 @@ function delBill(id) {
   saveState(); render();
 }
 
-// Wallet Editor
 let tempWallets = [];
 function openWalletModal() {
   tempWallets = JSON.parse(JSON.stringify(state.wallets));
@@ -1286,7 +1328,6 @@ function saveWallets() {
   showToast("Wallets updated!");
 }
 
-// Share, Backup & Export
 function openShareModal() { document.getElementById("share-modal").classList.remove("hidden"); }
 function openBackupModal() { document.getElementById("backup-modal").classList.remove("hidden"); }
 
@@ -1362,6 +1403,7 @@ function resetAllBlank() {
   showToast("All data cleared!");
 }
 
+checkStorageHealth();
 render();
 </script>
 </body>
