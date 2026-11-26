@@ -1,1872 +1,1368 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PesoFlow — Smart Budget & Loan Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
-          colors: {
-            surface: {
-              light: '#F8FAFC',
-              dark: '#0B0F19',
-              cardLight: '#FFFFFF',
-              cardDark: '#131A2A',
-              borderLight: '#E2E8F0',
-              borderDark: '#1E293B'
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    * { -webkit-tap-highlight-color: transparent; }
-    body { font-family: 'Inter', sans-serif; }
-    /* Custom scrollbar for sleek mobile/desktop tables */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 9999px; }
-    .tabular-nums { font-variant-numeric: tabular-nums; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>PesoFlow — 50/30/20 Budget & Loan Tracker</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --card: #131822;
+    --card-2: #1b2230;
+    --border: #273043;
+    --text: #f3f4f6;
+    --muted: #94a3b8;
+    --green: #10b981;
+    --green-bg: rgba(16, 185, 129, 0.14);
+    --amber: #f59e0b;
+    --amber-bg: rgba(245, 158, 11, 0.14);
+    --red: #ef4444;
+    --red-bg: rgba(239, 68, 68, 0.14);
+    --blue: #38bdf8;
+    --blue-bg: rgba(56, 189, 248, 0.14);
+    --purple: #a855f7;
+    --purple-bg: rgba(168, 85, 247, 0.14);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px 16px 96px;
+    max-width: 600px;
+    margin-inline: auto;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  h1 { font-size: 19px; margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .btn-sm {
+    background: var(--card-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-sm:active { transform: scale(0.97); }
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    background: var(--card);
+    padding: 5px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 9px 4px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tab.active {
+    background: var(--card-2);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0;
+    font-weight: 700;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .metric {
+    background: var(--card-2);
+    border-radius: 11px;
+    padding: 11px;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+  .metric-label { font-size: 11px; color: var(--muted); }
+  .metric-val { font-size: 18px; font-weight: 750; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .green { color: var(--green); }
+  .amber { color: var(--amber); }
+  .red { color: var(--red); }
+  .blue { color: var(--blue); }
+  .purple { color: var(--purple); }
+  .wallet-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .wallet-card {
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 11px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    gap: 8px;
+  }
+  .row:last-child { border-bottom: none; }
+  .pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    display: inline-block;
+  }
+  .pill-green { background: var(--green-bg); color: var(--green); }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); }
+  .pill-red { background: var(--red-bg); color: var(--red); }
+  .pill-blue { background: var(--blue-bg); color: var(--blue); }
+  .pill-purple { background: var(--purple-bg); color: var(--purple); }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 9px;
+    padding: 9px 10px;
+    font-size: 13.5px;
+  }
+  .btn-primary {
+    width: 100%;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-secondary {
+    background: var(--card-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-payoff {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 8px;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .hidden { display: none !important; }
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 50;
+  }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%;
+    max-width: 460px;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 99;
+  }
+  .toast.show { opacity: 1; }
+</style>
 </head>
-<body class="bg-surface-light dark:bg-surface-dark text-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-200 pb-24">
+<body>
 
-  <!-- Toast Notification Banner (No alert() used) -->
-  <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2">
-    <div id="toastContent" class="bg-slate-900 dark:bg-emerald-600 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-full shadow-xl border border-slate-700/50 dark:border-emerald-400/30 flex items-center gap-2">
-      <span id="toastIcon">✓</span>
-      <span id="toastText">Saved</span>
-    </div>
+<header>
+  <div>
+    <h1>PesoFlow Budget Tracker</h1>
+    <div class="sub" id="hdr-sub">50/30/20 Split • ₱0.00/day • 20 workdays/mo</div>
   </div>
-
-  <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-surface-dark/85 border-b border-surface-borderLight dark:border-surface-borderDark">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-extrabold text-lg shadow-sm">
-          ₱
-        </div>
-        <div>
-          <h1 class="text-base sm:text-lg font-bold tracking-tight leading-tight">PesoFlow</h1>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">Smart Budget & Loan Tracker</p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2">
-        <!-- Share Modal Trigger -->
-        <button onclick="openShareModal()" class="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition" title="Share Tracker">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-          <span>Share</span>
-        </button>
-
-        <!-- Cycle / Backup Trigger -->
-        <button onclick="openBackupModal()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition" title="Cycle Reset & Backup">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-          <span class="hidden sm:inline">Backup</span>
-        </button>
-
-        <!-- Theme Toggle -->
-        <button onclick="toggleTheme()" id="themeToggleBtn" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition" aria-label="Toggle Theme">
-          <svg id="sunIcon" class="w-4 h-4 hidden dark:block text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          <svg id="moonIcon" class="w-4 h-4 block dark:hidden text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-5xl mx-auto px-4 pt-5 space-y-6">
-
-    <!-- 1. TOP DASHBOARD: LIVE CASH & BUCKET SUMMARY -->
-    <section class="space-y-3">
-      <!-- Primary Hero Card: Cash On Hand & Earnings -->
-      <div class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-[#151F34] dark:via-[#11192B] dark:to-[#0E1525] text-white p-5 sm:p-6 shadow-lg border border-slate-700/60">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div class="flex flex-wrap items-center gap-2 mb-1">
-              <span id="heroCycleBadge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                0 Workdays Logged
-              </span>
-              <span id="debtFreeBadge" class="hidden inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                0 Loans Paid Off
-              </span>
-            </div>
-            <p class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-2">Available Cash On Hand</p>
-            <div class="flex flex-wrap items-baseline gap-2.5 mt-0.5">
-              <h2 id="heroCashLeft" class="text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight text-white">₱0.00</h2>
-              <span id="heroPureNetNote" class="text-xs text-slate-400 tabular-nums"></span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-700/60">
-            <div class="bg-white/5 rounded-xl px-3.5 py-2.5 border border-white/10">
-              <p class="text-[11px] text-slate-400">Total Income</p>
-              <p id="heroTotalEarned" class="text-base sm:text-lg font-bold text-emerald-400 tabular-nums">₱0.00</p>
-              <p id="heroWorkdaysCount" class="text-[10px] text-slate-400">0 workdays logged</p>
-            </div>
-            <div class="bg-white/5 rounded-xl px-3.5 py-2.5 border border-white/10">
-              <p class="text-[11px] text-slate-400">Total Spent & Paid</p>
-              <p id="heroTotalSpent" class="text-base sm:text-lg font-bold text-rose-400 tabular-nums">₱0.00</p>
-              <p class="text-[10px] text-slate-400">Daily + Bills & Loans</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Editable Smart Wallet Router -->
-        <div class="mt-5 pt-4 border-t border-slate-700/60">
-          <div class="flex items-center justify-between mb-2.5">
-            <div>
-              <p class="text-[11px] uppercase tracking-wider text-slate-300 font-bold">Smart Wallet Router (Where to Park Your Money)</p>
-              <p class="text-[10px] text-slate-400">Tap Edit Wallets to customize your banks, e-wallets, or cash envelopes</p>
-            </div>
-            <button onclick="openEditWalletsModal()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold border border-white/15 transition">
-              ✎ Edit Wallets
-            </button>
-          </div>
-          <div id="walletRouterGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-            <!-- Populated dynamically from state.wallets -->
-          </div>
-        </div>
-      </div>
-
-      <!-- 4 Live Bucket Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <!-- Savings Card -->
-        <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-          <div class="flex items-center justify-between mb-1">
-            <span id="cardSavingsLabel" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">50% SAVINGS</span>
-            <span id="dailySavingsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 tabular-nums">₱0.00/day</span>
-          </div>
-          <p id="bucketSavingsTarget" class="text-xl font-bold tabular-nums mt-1">₱0.00</p>
-          <p id="savingsGoalSubText" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Monthly Target: ₱0.00</p>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="savingsProgressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
-          </div>
-          <p id="savingsNoteText" class="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">0% of monthly target funded</p>
-        </div>
-
-        <!-- Needs Card -->
-        <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-          <div class="flex items-center justify-between mb-1">
-            <span id="cardNeedsLabel" class="text-xs font-semibold text-sky-600 dark:text-sky-400">30% NEEDS</span>
-            <span id="dailyNeedsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 tabular-nums">₱0.00/day</span>
-          </div>
-          <p id="bucketNeedsLeft" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">₱0.00</p>
-          <p id="bucketNeedsSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Spent ₱0.00 / ₱0.00</p>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="needsProgressBar" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
-          </div>
-          <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">Food, commute & essentials</p>
-        </div>
-
-        <!-- Wants Card -->
-        <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-          <div class="flex items-center justify-between mb-1">
-            <span id="cardWantsLabel" class="text-xs font-semibold text-purple-600 dark:text-purple-400">20% WANTS</span>
-            <span id="dailyWantsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 tabular-nums">₱0.00/day</span>
-          </div>
-          <p id="bucketWantsLeft" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">₱0.00</p>
-          <p id="bucketWantsSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Spent ₱0.00 / ₱0.00</p>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="wantsProgressBar" class="bg-purple-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
-          </div>
-          <p id="combinedRolloverBadge" class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 mt-1.5 tabular-nums">Daily Rollover: ₱0.00</p>
-        </div>
-
-        <!-- Fixed Monthly Expenses Card -->
-        <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">BILLS & LOANS</span>
-            <span id="dailyBillsRateBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 tabular-nums">₱0.00/day</span>
-          </div>
-          <p id="bucketMonthlyBillsTotal" class="text-xl font-bold tabular-nums mt-1">₱0.00</p>
-          <p id="bucketBillsPaidSub" class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">Paid this mo: ₱0.00</p>
-          <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2.5 overflow-hidden">
-            <div id="billsProgressBar" class="bg-amber-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
-          </div>
-          <p id="unpaidBillsNote" class="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 tabular-nums">Remaining due: ₱0.00</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Mobile / Desktop Tab Navigation -->
-    <nav class="flex p-1 rounded-2xl bg-slate-200/70 dark:bg-slate-800/80 border border-surface-borderLight dark:border-surface-borderDark">
-      <button onclick="switchTab('tracker')" id="tabBtn-tracker" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all bg-white dark:bg-surface-cardDark text-slate-900 dark:text-white shadow-sm">
-        Daily Tracker
-      </button>
-      <button onclick="switchTab('loans')" id="tabBtn-loans" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-        Loans & Bills
-      </button>
-      <button onclick="switchTab('allocator')" id="tabBtn-allocator" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-        Splits & Income
-      </button>
-    </nav>
-
-    <!-- TAB 1: DAILY NEEDS & WANTS SPENDING TRACKER -->
-    <section id="tab-tracker" class="space-y-4">
-      <!-- Quick Add Daily Spend Form -->
-      <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 sm:p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <div>
-            <h3 class="text-sm sm:text-base font-bold">Log Daily Spending</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Workdays add <span id="inlineWorkdayCap" class="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">₱0.00</span> daily allowance; Rest / Off Days add ₱0.00.</p>
-          </div>
-          <span id="rolloverHeaderPill" class="self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 tabular-nums">
-            Rollover Balance: ₱0.00
-          </span>
-        </div>
-
-        <form id="addExpenseForm" onsubmit="handleAddExpense(event)" class="grid grid-cols-2 sm:grid-cols-12 gap-2.5">
-          <div class="col-span-1 sm:col-span-2">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Date</label>
-            <input type="text" id="expDate" placeholder="MM/DD/YY" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-
-          <div class="col-span-1 sm:col-span-3">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Day Type</label>
-            <select id="expDayType" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="WORK">Workday (+Allowance)</option>
-              <option value="NW">Rest / Off Day (₱0 Cap)</option>
-            </select>
-          </div>
-
-          <div class="col-span-1 sm:col-span-2">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Needs (₱)</label>
-            <input type="number" step="0.01" min="0" id="expNeeds" placeholder="0.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-sky-500" />
-          </div>
-
-          <div class="col-span-1 sm:col-span-2">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Wants (₱)</label>
-            <input type="number" step="0.01" min="0" id="expWants" placeholder="0.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-purple-500" />
-          </div>
-
-          <div class="col-span-2 sm:col-span-3">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Note (Optional)</label>
-            <input type="text" id="expNote" placeholder="e.g., Lunch, commute" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-
-          <div class="col-span-2 sm:col-span-12">
-            <button type="submit" class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-semibold text-sm py-2.5 px-4 shadow-sm transition">
-              + Log Day
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Daily Spending Table -->
-      <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark shadow-sm overflow-hidden">
-        <div class="px-4 py-3 border-b border-surface-borderLight dark:border-surface-borderDark flex items-center justify-between">
-          <div>
-            <h3 class="text-sm font-bold">Daily Expense History</h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">Tap any row to edit amounts, day type, or notes</p>
-          </div>
-          <span id="logSummaryCount" class="text-xs text-slate-500 dark:text-slate-400">0 days</span>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b border-surface-borderLight dark:border-surface-borderDark text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-slate-900/40">
-                <th class="py-2.5 px-3 sm:px-4 font-semibold">Date</th>
-                <th class="py-2.5 px-3 font-semibold text-right">Needs</th>
-                <th class="py-2.5 px-3 font-semibold text-right">Wants</th>
-                <th class="py-2.5 px-3 font-semibold text-right">Day (+/-)</th>
-                <th class="py-2.5 px-3 font-semibold text-right hidden sm:table-cell">Rollover</th>
-                <th class="py-2.5 px-2 text-center w-16">Edit</th>
-              </tr>
-            </thead>
-            <tbody id="expenseTableBody" class="divide-y divide-surface-borderLight dark:divide-surface-borderDark text-xs sm:text-sm tabular-nums">
-              <!-- Populated dynamically by JS -->
-            </tbody>
-            <tfoot id="expenseTableFoot" class="bg-slate-50 dark:bg-slate-900/60 font-bold text-xs sm:text-sm border-t-2 border-surface-borderLight dark:border-surface-borderDark tabular-nums">
-              <!-- Populated dynamically by JS -->
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 2: SMART LOAN & FIXED BILLS AUTOMATOR -->
-    <section id="tab-loans" class="hidden space-y-4">
-      <!-- Automation Explanation Banner -->
-      <div class="rounded-2xl bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-sky-500/10 border border-emerald-500/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h3 class="text-sm font-bold flex items-center gap-1.5">
-            <span>⚡ Automatic Loan Payoff Reallocation</span>
-          </h3>
-          <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-            Mark a loan <strong>"Paid Off Forever"</strong> when settled in full—its monthly deduction is permanently removed and your daily Savings, Needs, and Wants budgets automatically increase.
-          </p>
-        </div>
-        <div class="shrink-0 bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-surface-borderLight dark:border-surface-borderDark text-right">
-          <p class="text-[10px] uppercase tracking-wider text-slate-400">Active Monthly Bills</p>
-          <p id="activeMonthlyBillsDisplay" class="text-base font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">₱0.00</p>
-        </div>
-      </div>
-
-      <!-- Obligations List -->
-      <div id="obligationsList" class="space-y-2.5">
-        <!-- Populated dynamically by JS -->
-      </div>
-
-      <!-- Add New Loan / Monthly Bill Form -->
-      <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-4 sm:p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm">
-        <h4 class="text-sm font-bold mb-3">Add Monthly Bill, Loan, or Savings Commitment</h4>
-        <form onsubmit="handleAddObligation(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-          <div class="sm:col-span-5">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Description</label>
-            <input type="text" id="newObName" placeholder="e.g., Internet, Installment Loan, School Fund" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-          <div class="sm:col-span-3">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Monthly Amount (₱)</label>
-            <input type="number" step="0.01" min="0" id="newObMonthly" placeholder="500.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-          <div class="sm:col-span-2">
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Type</label>
-            <select id="newObType" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="BILL">Monthly Bill</option>
-              <option value="LOAN">Installment Loan</option>
-            </select>
-          </div>
-          <div class="sm:col-span-2 flex items-end">
-            <button type="submit" class="w-full rounded-xl bg-slate-900 dark:bg-emerald-600 hover:opacity-95 text-white font-semibold text-sm py-2.5 px-4 transition">
-              + Add
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <!-- TAB 3: EDITABLE PERCENTAGE SPLITS, GOALS & PAYCHECK ALLOCATOR -->
-    <section id="tab-allocator" class="hidden space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Custom Percentage Split & Wage Editor -->
-        <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm space-y-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-base font-bold">Budget Split & Wage Settings</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Customize your Savings, Needs, and Wants percentages</p>
-            </div>
-            <span id="pctTotalBadge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">Total: 100%</span>
-          </div>
-
-          <!-- Quick Preset Buttons -->
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="applyPreset(50, 30, 20)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">50 / 30 / 20 Balanced</button>
-            <button type="button" onclick="applyPreset(60, 25, 15)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">60 / 25 / 15 High Save</button>
-            <button type="button" onclick="applyPreset(40, 40, 20)" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-400 transition">40 / 40 / 20 Essentials</button>
-          </div>
-
-          <!-- 3 Percentage Inputs -->
-          <div class="grid grid-cols-3 gap-2.5">
-            <div>
-              <label class="block text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mb-1">Savings (%)</label>
-              <input type="number" id="pctSavingsInput" value="50" min="0" max="100" step="1" oninput="handlePctInput()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-sky-600 dark:text-sky-400 mb-1">Needs (%)</label>
-              <input type="number" id="pctNeedsInput" value="30" min="0" max="100" step="1" oninput="handlePctInput()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-purple-600 dark:text-purple-400 mb-1">Wants (%)</label>
-              <input type="number" id="pctWantsInput" value="20" min="0" max="100" step="1" oninput="handlePctInput()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-bold tabular-nums focus:outline-none focus:ring-2 focus:ring-purple-500" />
-            </div>
-          </div>
-
-          <p id="pctWarningMsg" class="hidden text-xs text-rose-500 font-medium">Percentages must add up to 100% to apply.</p>
-
-          <!-- Base Wage & Goal Settings -->
-          <div class="grid grid-cols-2 gap-3 pt-2 border-t border-surface-borderLight dark:border-surface-borderDark">
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Daily Wage / Rate (₱)</label>
-              <input type="number" id="baseDailyWageInput" value="700" min="1" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Workdays / Month</label>
-              <input type="number" id="workdaysPerMonthInput" value="20" min="1" max="31" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-            <div class="col-span-2">
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Monthly Savings Goal Target (₱) — Leave 0 for auto</label>
-              <input type="number" id="customGoalTargetInput" value="0" min="0" step="1" onchange="updateBaseSettings()" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm font-semibold tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-          </div>
-
-          <!-- Breakdown Table -->
-          <div class="rounded-xl border border-surface-borderLight dark:border-surface-borderDark overflow-hidden">
-            <table class="w-full text-xs sm:text-sm tabular-nums">
-              <thead class="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase text-slate-500 dark:text-slate-400">
-                <tr>
-                  <th class="py-2 px-3 text-left">Category</th>
-                  <th class="py-2 px-3 text-right">Per Workday</th>
-                  <th class="py-2 px-3 text-right">5-Day Batch</th>
-                  <th class="py-2 px-3 text-right">Monthly</th>
-                </tr>
-              </thead>
-              <tbody id="rateBreakdownBody" class="divide-y divide-surface-borderLight dark:divide-surface-borderDark">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Log Payout / Salary History -->
-        <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-5 border border-surface-borderLight dark:border-surface-borderDark shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <h3 class="text-base font-bold">Income & Payday Log</h3>
-              <button type="button" onclick="quickAddDailyPay()" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 text-xs font-bold transition">
-                +1 Day Pay
-              </button>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Log every daily wage, weekly payout, or allowance received</p>
-
-            <form onsubmit="handleAddPayout(event)" class="grid grid-cols-12 gap-2 mb-4">
-              <div class="col-span-5">
-                <input type="text" id="payoutLabel" placeholder="e.g., Week 1 Pay" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              </div>
-              <div class="col-span-4">
-                <input type="number" step="0.01" min="1" id="payoutAmount" placeholder="3500.00" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-xs sm:text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              </div>
-              <div class="col-span-3">
-                <button type="submit" class="w-full h-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm transition">
-                  + Add
-                </button>
-              </div>
-            </form>
-
-            <div id="payoutHistoryList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-
-          <div class="pt-3 border-t border-surface-borderLight dark:border-surface-borderDark flex items-center justify-between text-xs">
-            <span class="text-slate-500 dark:text-slate-400">Transfer Tip:</span>
-            <span class="font-semibold text-emerald-600 dark:text-emerald-400">Batch transfers every 5 days to avoid fees</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Inline Edit Modal (For Daily Expenses, Loans/Bills & Wallets) -->
-  <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="bg-white dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between">
-        <h3 id="editModalTitle" class="text-base font-bold">Edit</h3>
-        <button onclick="closeEditModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
-      </div>
-      <div id="editModalBody" class="space-y-3"></div>
-    </div>
+  <div style="display:flex; gap:6px;">
+    <button class="btn-sm" onclick="openShareModal()">Share</button>
+    <button class="btn-sm" onclick="openBackupModal()">Backup</button>
   </div>
+</header>
 
-  <!-- Share Modal (Share Blank Template vs Live Snapshot) -->
-  <div id="shareModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="bg-white dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold">Share PesoFlow Tracker</h3>
-        <button onclick="closeShareModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+<div class="tabs">
+  <button class="tab active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
+  <button class="tab" id="tab-daily" onclick="switchTab('daily')">Daily Log</button>
+  <button class="tab" id="tab-loans" onclick="switchTab('loans')">Loans & Bills</button>
+  <button class="tab" id="tab-settings" onclick="switchTab('settings')">Edit Splits</button>
+</div>
+
+<!-- OVERVIEW TAB -->
+<section id="view-overview">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Cash Position</div>
+      <button class="btn-sm" onclick="quickAddDayPay()">+1 Workday Pay</button>
+    </div>
+    <div class="hero-grid">
+      <div class="metric">
+        <div class="metric-label">Total Salary Earned</div>
+        <div class="metric-val" id="ov-earned">₱0.00</div>
+        <div class="metric-sub" id="ov-workdays-logged">0 workdays logged</div>
       </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400">
-        Send this app to friends or sync across your own devices using encoded links.
-      </p>
-
-      <div class="space-y-3">
-        <!-- Option 1: Blank Template Link -->
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-surface-borderLight dark:border-surface-borderDark space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">1. Share Clean App Link (For Friends)</span>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-semibold">Privacy Safe</span>
-          </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Shares a completely clean starter tracker with zero personal numbers so anyone can set up their own budget.</p>
-          <button onclick="copyShareLink('template')" class="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">
-            🔗 Copy Clean App Link
-          </button>
-        </div>
-
-        <!-- Option 2: Live Snapshot Link -->
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-surface-borderLight dark:border-surface-borderDark space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-sky-600 dark:text-sky-400">2. Share Current Setup & Data Link</span>
-            <span class="text-[10px] px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 font-semibold">Sync Devices</span>
-          </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Encodes your custom wallets, split rules, and logs into a link so you can open your exact setup on another device.</p>
-          <button onclick="copyShareLink('snapshot')" class="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold transition">
-            🔗 Copy Snapshot Link (#data=...)
-          </button>
-        </div>
-
-        <!-- Option 3: Apple Notes Summary -->
-        <button onclick="copyIphoneNotesSummary(); closeShareModal();" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold transition">
-          📋 Copy Text Summary for Notes / Chat
-        </button>
+      <div class="metric">
+        <div class="metric-label">Cash Left on Hand</div>
+        <div class="metric-val green" id="ov-cash-left">₱0.00</div>
+        <div class="metric-sub" id="ov-pure-net">₱0.00 after unpaid bills</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Daily Spend (Needs+Wants)</div>
+        <div class="metric-val" id="ov-daily-spent">₱0.00</div>
+        <div class="metric-sub" id="ov-rollover">₱0.00 rollover</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Bills & Loans Paid</div>
+        <div class="metric-val amber" id="ov-bills-paid">₱0.00</div>
+        <div class="metric-sub" id="ov-bills-unpaid">₱0.00 unpaid this mo</div>
       </div>
     </div>
   </div>
 
-  <!-- Backup / Export / New Month Modal -->
-  <div id="backupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="bg-white dark:bg-surface-cardDark border border-surface-borderLight dark:border-surface-borderDark rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold">Cycle Reset & Data Backup</h3>
-        <button onclick="closeBackupModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">✕</button>
+  <!-- SMART WALLET ROUTER -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Smart Wallet Router (Where to Park Your Money)</div>
+        <div class="sub">Tap Edit Wallets to customize your banks, e-wallets, or cash</div>
       </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400">
-        Start a fresh monthly cycle, load sample data to explore, or export your backup file.
-      </p>
+      <button class="btn-sm" onclick="openWalletModal()">✎ Edit Wallets</button>
+    </div>
+    <div class="wallet-grid" id="wallet-cards"></div>
+  </div>
 
-      <div class="grid grid-cols-1 gap-2.5">
-        <button onclick="confirmNewMonthCycle()" id="newMonthBtn" class="w-full py-2.5 px-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-300 hover:bg-amber-500/25 text-xs sm:text-sm font-semibold transition">
-          🗓 Start New Month Cycle (Keep Paid-Off Loans)
-        </button>
-        <button onclick="copyIphoneNotesSummary()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2">
-          <span>📋 Copy Summary for Apple Notes</span>
-        </button>
-        <button onclick="exportDataJSON()" class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-semibold transition">
-          ⬇ Download JSON Backup File
-        </button>
-        <label class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs sm:text-sm font-semibold transition text-center cursor-pointer block">
-          ⬆ Restore from JSON Backup
-          <input type="file" accept=".json" onchange="importDataJSON(event)" class="hidden" />
-        </label>
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <button onclick="loadDemoTemplate()" class="py-2 px-3 rounded-xl border border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 text-xs font-semibold transition">
-            Load Sample Data
-          </button>
-          <button onclick="confirmResetDefaults()" id="resetDefaultBtn" class="py-2 px-3 rounded-xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition">
-            Clear All (Blank)
-          </button>
-        </div>
+  <!-- ALLOCATION BREAKDOWN -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Dynamic Budget Allotments</div>
+      <span class="sub" id="ov-5day-note">5-Day Transfer Guide</span>
+    </div>
+    <div class="row">
+      <div>
+        <strong>Fixed Monthly Bills & Loans</strong>
+        <div class="sub" id="ov-bills-count">0 active commitments</div>
+      </div>
+      <div style="text-align:right;">
+        <strong id="ov-fixed-mo">₱0.00 / mo</strong>
+        <div class="sub" id="ov-fixed-day">₱0.00 / workday</div>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <span class="pill pill-green" id="lbl-sav-pct">50% SAVINGS</span>
+        <div class="sub" id="ov-sav-5d">₱0.00 per 5 workdays</div>
+      </div>
+      <div style="text-align:right;">
+        <strong class="green" id="ov-sav-mo">₱0.00 / mo</strong>
+        <div class="sub" id="ov-sav-day">₱0.00 / workday</div>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <span class="pill pill-blue" id="lbl-need-pct">30% NEEDS</span>
+        <div class="sub" id="ov-need-5d">₱0.00 per 5 workdays</div>
+      </div>
+      <div style="text-align:right;">
+        <strong id="ov-need-mo">₱0.00 / mo</strong>
+        <div class="sub" id="ov-need-day">₱0.00 / workday</div>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <span class="pill pill-amber" id="lbl-want-pct">20% WANTS</span>
+        <div class="sub" id="ov-want-5d">₱0.00 per 5 workdays</div>
+      </div>
+      <div style="text-align:right;">
+        <strong id="ov-want-mo">₱0.00 / mo</strong>
+        <div class="sub" id="ov-want-day">₱0.00 / workday</div>
       </div>
     </div>
   </div>
+</section>
 
-  <!-- Hidden textarea for safe clipboard copy -->
-  <textarea id="clipboardHelper" class="sr-only" aria-hidden="true"></textarea>
+<!-- DAILY TRACKER TAB -->
+<section id="view-daily" class="hidden">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Log Daily Expense</div>
+      <span class="sub" id="daily-cap-badge">Cap: ₱0.00/workday</span>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>Date (MM/DD/YY)</label>
+        <input type="text" id="log-date" placeholder="11/27/26" />
+      </div>
+      <div>
+        <label>Day Status</label>
+        <select id="log-type">
+          <option value="work">Workday (+Daily Cap)</option>
+          <option value="off">Rest / Off Day (₱0 Cap)</option>
+        </select>
+      </div>
+      <div>
+        <label>Needs Spent (₱)</label>
+        <input type="number" step="0.01" id="log-needs" placeholder="0.00" />
+      </div>
+      <div>
+        <label>Wants Spent (₱)</label>
+        <input type="number" step="0.01" id="log-wants" placeholder="0.00" />
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label>Note (Optional)</label>
+      <input type="text" id="log-note" placeholder="e.g. Lunch, commute, coffee" />
+    </div>
+    <button class="btn-primary" onclick="addLog()">+ Add Entry</button>
+  </div>
 
-  <script>
-    // =========================================================================
-    // 1. UNIVERSAL DEFAULT STATE & SAMPLE DATA
-    // =========================================================================
-    const STORAGE_KEY = 'pesoflow_universal_v3';
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Spending History</div>
+      <span class="sub" id="log-count-badge">0 entries</span>
+    </div>
 
-    // Clean, universal starter template for anyone opening the app
-    const CLEAN_STARTER_STATE = {
-      settings: {
-        baseDailyWage: 700.00,
-        workdaysPerMonth: 20,
-        pctSavings: 50,
-        pctNeeds: 30,
-        pctWants: 20,
-        customGoalTarget: 0,
-        theme: 'dark'
-      },
-      wallets: [
-        {
-          id: 'w_hub',
-          name: 'MariBank',
-          roleLabel: 'Main Hub & Bills',
-          routeType: 'BILLS_AND_HUB',
-          color: 'amber',
-          note: 'Free transfers & monthly bills reserve'
-        },
-        {
-          id: 'w_sav',
-          name: 'Maya Savings / Goals',
-          roleLabel: 'Savings Vault',
-          routeType: 'SAVINGS',
-          color: 'emerald',
-          note: 'Goal savings & emergency stash'
-        },
-        {
-          id: 'w_spend',
-          name: 'GCash / Cash',
-          roleLabel: 'Daily Needs & Wants',
-          routeType: 'DAILY_SPEND',
-          color: 'sky',
-          note: 'Daily food, commute & pocket money'
-        }
-      ],
-      payouts: [],
-      obligations: [],
-      expenses: []
-    };
+    <!-- MULTI-YEAR FILTER & SORT CONTROLS -->
+    <div class="filter-grid">
+      <div>
+        <label>Month / Year</label>
+        <select id="filter-month" onchange="resetPageAndRender()">
+          <option value="all">All Months (All-Time)</option>
+        </select>
+      </div>
+      <div>
+        <label>Day Filter</label>
+        <select id="filter-type" onchange="resetPageAndRender()">
+          <option value="all">All Days</option>
+          <option value="work">Workdays Only</option>
+          <option value="off">Off Days Only</option>
+          <option value="over">Over-Cap Days</option>
+        </select>
+      </div>
+      <div>
+        <label>Sort By</label>
+        <select id="sort-logs" onchange="resetPageAndRender()">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="highest">Highest Spend</option>
+          <option value="lowest">Lowest Spend</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <input type="text" id="search-logs" placeholder="Search date or note (e.g. coffee, 11/26)..." oninput="resetPageAndRender()" />
+    </div>
 
-    // Universal sample dataset (for previewing or loading demo numbers)
-    const SAMPLE_DEMO_STATE = {
-      settings: {
-        baseDailyWage: 700.00,
-        workdaysPerMonth: 20,
-        pctSavings: 50,
-        pctNeeds: 30,
-        pctWants: 20,
-        customGoalTarget: 0,
-        theme: 'dark'
-      },
-      wallets: [
-        {
-          id: 'w_hub',
-          name: 'MariBank',
-          roleLabel: 'Main Hub & Bills',
-          routeType: 'BILLS_AND_HUB',
-          color: 'amber',
-          note: 'Free transfers & monthly bills reserve'
-        },
-        {
-          id: 'w_sav',
-          name: 'Maya Savings / Goals',
-          roleLabel: 'Savings Vault',
-          routeType: 'SAVINGS',
-          color: 'emerald',
-          note: 'Goal savings & emergency stash'
-        },
-        {
-          id: 'w_spend',
-          name: 'GCash / Cash',
-          roleLabel: 'Daily Needs & Wants',
-          routeType: 'DAILY_SPEND',
-          color: 'sky',
-          note: 'Daily food, commute & pocket money'
-        }
-      ],
-      payouts: [
-        { id: 'p1', label: 'Week 1 Payout (5 Workdays)', amount: 3500.00 },
-        { id: 'p2', label: 'Week 2 Payout (5 Workdays)', amount: 3500.00 }
-      ],
-      obligations: [
-        {
-          id: 'ob1',
-          name: 'Installment Loan 1',
-          type: 'LOAN',
-          monthlyAmount: 350.00,
-          paidThisMonth: true,
-          amountPaidThisMonth: 350.00,
-          fullyPaidForever: false
-        },
-        {
-          id: 'ob2',
-          name: 'Small Online Loan (Settled)',
-          type: 'LOAN',
-          monthlyAmount: 150.00,
-          paidThisMonth: true,
-          amountPaidThisMonth: 450.00,
-          fullyPaidForever: true
-        },
-        {
-          id: 'ob3',
-          name: 'Monthly Project / Savings Goal',
-          type: 'BILL',
-          monthlyAmount: 2000.00,
-          paidThisMonth: true,
-          amountPaidThisMonth: 2000.00,
-          fullyPaidForever: false
-        },
-        {
-          id: 'ob4',
-          name: 'Phone Load & Internet',
-          type: 'BILL',
-          monthlyAmount: 300.00,
-          paidThisMonth: false,
-          amountPaidThisMonth: 0.00,
-          fullyPaidForever: false
-        }
-      ],
-      expenses: [
-        { id: 'e1', date: '11/22/26', dayType: 'WORK', needs: 85.00, wants: 60.00, note: 'Lunch & jeepney fare' },
-        { id: 'e2', date: '11/23/26', dayType: 'WORK', needs: 110.00, wants: 90.00, note: 'Meals & coffee' },
-        { id: 'e3', date: '11/24/26', dayType: 'NW',   needs: 50.00, wants: 120.00, note: 'Rest day snacks' },
-        { id: 'e4', date: '11/25/26', dayType: 'WORK', needs: 95.00, wants: 40.00, note: 'Commute & dinner' }
-      ]
-    };
-
-    let state = loadState();
-    let resetConfirmStep = false;
-    let newMonthConfirmStep = false;
-
-    function loadState() {
-      // 1. Check URL Hash for shared links (#data=...)
-      try {
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#data=')) {
-          const encoded = decodeURIComponent(hash.slice(6));
-          const parsed = JSON.parse(decodeURIComponent(escape(atob(encoded))));
-          if (parsed && parsed.settings && parsed.expenses && parsed.obligations) {
-            parsed.wallets = parsed.wallets || JSON.parse(JSON.stringify(CLEAN_STARTER_STATE.wallets));
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-            history.replaceState(null, '', window.location.pathname + window.location.search);
-            setTimeout(() => showToast('Loaded shared tracker setup!'), 300);
-            return parsed;
-          }
-        }
-      } catch (e) {
-        console.warn('Could not parse shared URL hash', e);
-      }
-
-      // 2. Load from LocalStorage or start with clean universal template
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return JSON.parse(JSON.stringify(CLEAN_STARTER_STATE));
-        const parsed = JSON.parse(raw);
-        parsed.settings = Object.assign({}, CLEAN_STARTER_STATE.settings, parsed.settings || {});
-        if (!Array.isArray(parsed.wallets) || parsed.wallets.length === 0) {
-          parsed.wallets = JSON.parse(JSON.stringify(CLEAN_STARTER_STATE.wallets));
-        }
-        return parsed;
-      } catch (e) {
-        return JSON.parse(JSON.stringify(CLEAN_STARTER_STATE));
-      }
-    }
-
-    function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.error('Storage save failed', e);
-      }
-    }
-
-    // =========================================================================
-    // 2. CORE FINANCIAL CALCULATION ENGINE
-    // =========================================================================
-    function formatPHP(num) {
-      const val = Number(num) || 0;
-      const sign = val < 0 ? '-' : '';
-      return sign + '₱' + Math.abs(val).toLocaleString('en-PH', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    }
-
-    function formatSignedPHP(num) {
-      const val = Number(num) || 0;
-      if (Math.abs(val) < 0.005) return '₱0.00';
-      const sign = val > 0 ? '+' : '-';
-      return sign + '₱' + Math.abs(val).toLocaleString('en-PH', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    }
-
-    function calculateMetrics() {
-      const { baseDailyWage, workdaysPerMonth, pctSavings, pctNeeds, pctWants, customGoalTarget } = state.settings;
-      const monthlyGrossTarget = baseDailyWage * workdaysPerMonth;
-
-      const activeMonthlyBills = state.obligations
-        .filter(ob => !ob.fullyPaidForever)
-        .reduce((sum, ob) => sum + Number(ob.monthlyAmount), 0);
-
-      const monthlyAfterBills = Math.max(0, monthlyGrossTarget - activeMonthlyBills);
-
-      const savRatio = (Number(pctSavings) || 0) / 100;
-      const needRatio = (Number(pctNeeds) || 0) / 100;
-      const wantRatio = (Number(pctWants) || 0) / 100;
-
-      const dailyBillsRate = activeMonthlyBills / workdaysPerMonth;
-      const dailySavingsRate = (monthlyAfterBills * savRatio) / workdaysPerMonth;
-      const dailyNeedsRate = (monthlyAfterBills * needRatio) / workdaysPerMonth;
-      const dailyWantsRate = (monthlyAfterBills * wantRatio) / workdaysPerMonth;
-      const dailyPocketCap = dailyNeedsRate + dailyWantsRate;
-
-      const totalSalaryEarned = state.payouts.reduce((sum, p) => sum + Number(p.amount), 0);
-
-      let loggedWorkdays = 0;
-      let loggedNWDays = 0;
-      let totalNeedsSpent = 0;
-      let totalWantsSpent = 0;
-
-      state.expenses.forEach(exp => {
-        if (exp.dayType === 'WORK') loggedWorkdays++;
-        else loggedNWDays++;
-        totalNeedsSpent += Number(exp.needs);
-        totalWantsSpent += Number(exp.wants);
-      });
-
-      const totalDailySpent = totalNeedsSpent + totalWantsSpent;
-
-      const earnedNeedsAllowance = loggedWorkdays * dailyNeedsRate;
-      const earnedWantsAllowance = loggedWorkdays * dailyWantsRate;
-      const earnedSavingsTarget = loggedWorkdays * dailySavingsRate;
-
-      const needsDiff = earnedNeedsAllowance - totalNeedsSpent;
-      const wantsDiff = earnedWantsAllowance - totalWantsSpent;
-      const netDailyRollover = needsDiff + wantsDiff;
-
-      const totalObligationsPaidOut = state.obligations
-        .filter(ob => ob.paidThisMonth)
-        .reduce((sum, ob) => sum + Number(ob.amountPaidThisMonth), 0);
-
-      const unpaidThisMonthObligations = state.obligations
-        .filter(ob => !ob.fullyPaidForever && !ob.paidThisMonth)
-        .reduce((sum, ob) => sum + Number(ob.monthlyAmount), 0);
-
-      const totalOutflows = totalDailySpent + totalObligationsPaidOut;
-      const actualCashLeft = totalSalaryEarned - totalOutflows;
-      const pureNetAfterRemainingBills = actualCashLeft - unpaidThisMonthObligations;
-
-      const fullyPaidOffCount = state.obligations.filter(ob => ob.fullyPaidForever).length;
-      const activeGoalTarget = Number(customGoalTarget) > 0 ? Number(customGoalTarget) : (monthlyAfterBills * savRatio);
-
-      return {
-        monthlyGrossTarget,
-        activeMonthlyBills,
-        monthlyAfterBills,
-        savRatio,
-        needRatio,
-        wantRatio,
-        dailyBillsRate,
-        dailySavingsRate,
-        dailyNeedsRate,
-        dailyWantsRate,
-        dailyPocketCap,
-        totalSalaryEarned,
-        loggedWorkdays,
-        loggedNWDays,
-        totalNeedsSpent,
-        totalWantsSpent,
-        totalDailySpent,
-        earnedNeedsAllowance,
-        earnedWantsAllowance,
-        earnedSavingsTarget,
-        needsDiff,
-        wantsDiff,
-        netDailyRollover,
-        totalObligationsPaidOut,
-        unpaidThisMonthObligations,
-        totalOutflows,
-        actualCashLeft,
-        pureNetAfterRemainingBills,
-        fullyPaidOffCount,
-        activeGoalTarget
-      };
-    }
-
-    // =========================================================================
-    // 3. UI RENDERING
-    // =========================================================================
-    function renderAll() {
-      const m = calculateMetrics();
-
-      if (state.settings.theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-
-      // Hero Dashboard
-      document.getElementById('heroCycleBadge').textContent = `${m.loggedWorkdays} Workday${m.loggedWorkdays === 1 ? '' : 's'} Logged`;
-      document.getElementById('heroCashLeft').textContent = formatPHP(m.actualCashLeft);
-      document.getElementById('heroCashLeft').className = `text-3xl sm:text-4xl font-extrabold tabular-nums tracking-tight ${m.actualCashLeft >= 0 ? 'text-white' : 'text-rose-400'}`;
-
-      if (m.unpaidThisMonthObligations > 0) {
-        document.getElementById('heroPureNetNote').textContent = `(${formatPHP(m.pureNetAfterRemainingBills)} net after ${formatPHP(m.unpaidThisMonthObligations)} unpaid bills)`;
-      } else if (state.obligations.length > 0) {
-        document.getElementById('heroPureNetNote').textContent = `(All monthly bills paid ✓)`;
-      } else {
-        document.getElementById('heroPureNetNote').textContent = ``;
-      }
-
-      document.getElementById('heroTotalEarned').textContent = formatPHP(m.totalSalaryEarned);
-      document.getElementById('heroWorkdaysCount').textContent = `${state.payouts.length} payout${state.payouts.length === 1 ? '' : 's'} logged`;
-      document.getElementById('heroTotalSpent').textContent = formatPHP(m.totalOutflows);
-
-      const debtBadge = document.getElementById('debtFreeBadge');
-      if (m.fullyPaidOffCount > 0) {
-        debtBadge.textContent = `${m.fullyPaidOffCount} Loan${m.fullyPaidOffCount > 1 ? 's' : ''} Paid Off`;
-        debtBadge.classList.remove('hidden');
-      } else {
-        debtBadge.classList.add('hidden');
-      }
-
-      // Render Editable Smart Wallet Router
-      renderWalletRouter(m);
-
-      // Dynamic Percentage Labels on Bucket Cards
-      document.getElementById('cardSavingsLabel').textContent = `${state.settings.pctSavings}% SAVINGS`;
-      document.getElementById('cardNeedsLabel').textContent = `${state.settings.pctNeeds}% NEEDS`;
-      document.getElementById('cardWantsLabel').textContent = `${state.settings.pctWants}% WANTS`;
-
-      // 4 Bucket Cards
-      document.getElementById('dailySavingsRateBadge').textContent = `${formatPHP(m.dailySavingsRate)}/day`;
-      document.getElementById('bucketSavingsTarget').textContent = formatPHP(m.earnedSavingsTarget);
-      document.getElementById('savingsGoalSubText').textContent = `Monthly Target: ${formatPHP(m.activeGoalTarget)}`;
-      const savingsRatio = m.activeGoalTarget > 0 ? Math.min(100, Math.max(0, (Math.max(0, m.pureNetAfterRemainingBills) / m.activeGoalTarget) * 100)) : 0;
-      document.getElementById('savingsProgressBar').style.width = `${savingsRatio.toFixed(0)}%`;
-      document.getElementById('savingsNoteText').textContent = `${savingsRatio.toFixed(0)}% of monthly target funded`;
-
-      document.getElementById('dailyNeedsRateBadge').textContent = `${formatPHP(m.dailyNeedsRate)}/day`;
-      const needsLeftEl = document.getElementById('bucketNeedsLeft');
-      needsLeftEl.textContent = formatSignedPHP(m.needsDiff);
-      needsLeftEl.className = `text-xl font-bold tabular-nums mt-1 ${m.needsDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`;
-      document.getElementById('bucketNeedsSub').textContent = `Spent ${formatPHP(m.totalNeedsSpent)} / ${formatPHP(m.earnedNeedsAllowance)}`;
-      const needsPct = m.earnedNeedsAllowance > 0 ? Math.min(100, (m.totalNeedsSpent / m.earnedNeedsAllowance) * 100) : 0;
-      document.getElementById('needsProgressBar').style.width = `${needsPct.toFixed(0)}%`;
-
-      document.getElementById('dailyWantsRateBadge').textContent = `${formatPHP(m.dailyWantsRate)}/day`;
-      const wantsLeftEl = document.getElementById('bucketWantsLeft');
-      wantsLeftEl.textContent = formatSignedPHP(m.wantsDiff);
-      wantsLeftEl.className = `text-xl font-bold tabular-nums mt-1 ${m.wantsDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`;
-      document.getElementById('bucketWantsSub').textContent = `Spent ${formatPHP(m.totalWantsSpent)} / ${formatPHP(m.earnedWantsAllowance)}`;
-      const wantsPct = m.earnedWantsAllowance > 0 ? Math.min(100, (m.totalWantsSpent / m.earnedWantsAllowance) * 100) : 0;
-      document.getElementById('wantsProgressBar').style.width = `${wantsPct.toFixed(0)}%`;
-
-      const rolloverBadge = document.getElementById('combinedRolloverBadge');
-      rolloverBadge.textContent = `Daily Rollover: ${formatSignedPHP(m.netDailyRollover)}`;
-      rolloverBadge.className = `text-[10px] font-medium mt-1.5 tabular-nums ${m.netDailyRollover >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`;
-
-      document.getElementById('dailyBillsRateBadge').textContent = `${formatPHP(m.dailyBillsRate)}/day`;
-      document.getElementById('bucketMonthlyBillsTotal').textContent = formatPHP(m.activeMonthlyBills);
-      document.getElementById('bucketBillsPaidSub').textContent = `Paid this mo: ${formatPHP(m.totalObligationsPaidOut)}`;
-      const billsPct = m.activeMonthlyBills > 0 ? Math.min(100, ((m.activeMonthlyBills - m.unpaidThisMonthObligations) / m.activeMonthlyBills) * 100) : 100;
-      document.getElementById('billsProgressBar').style.width = `${billsPct.toFixed(0)}%`;
-      document.getElementById('unpaidBillsNote').textContent = m.unpaidThisMonthObligations > 0
-        ? `Remaining due: ${formatPHP(m.unpaidThisMonthObligations)}`
-        : `All recurring bills covered ✓`;
-
-      // Tab 1: Tracker
-      document.getElementById('inlineWorkdayCap').textContent = formatPHP(m.dailyPocketCap);
-      const headerPill = document.getElementById('rolloverHeaderPill');
-      headerPill.textContent = `Rollover Balance: ${formatSignedPHP(m.netDailyRollover)}`;
-      headerPill.className = `self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold border tabular-nums ${
-        m.netDailyRollover >= 0
-          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-      }`;
-
-      document.getElementById('logSummaryCount').textContent = `${state.expenses.length} day${state.expenses.length === 1 ? '' : 's'} (${m.loggedWorkdays} Work, ${m.loggedNWDays} Off)`;
-      renderExpenseTable(m);
-
-      // Tab 2: Loans & Bills
-      document.getElementById('activeMonthlyBillsDisplay').textContent = formatPHP(m.activeMonthlyBills);
-      renderObligationsList();
-
-      // Tab 3: Splits & Income
-      document.getElementById('pctSavingsInput').value = state.settings.pctSavings;
-      document.getElementById('pctNeedsInput').value = state.settings.pctNeeds;
-      document.getElementById('pctWantsInput').value = state.settings.pctWants;
-      document.getElementById('baseDailyWageInput').value = state.settings.baseDailyWage;
-      document.getElementById('workdaysPerMonthInput').value = state.settings.workdaysPerMonth;
-      document.getElementById('customGoalTargetInput').value = state.settings.customGoalTarget;
-      renderRateBreakdown(m);
-      renderPayoutsList();
-    }
-
-    function getWalletRouteMetrics(w, m) {
-      switch (w.routeType) {
-        case 'BILLS_AND_HUB':
-          return {
-            primary: formatPHP(m.unpaidThisMonthObligations),
-            sub: `Unpaid bills reserve • ${formatPHP(m.dailyBillsRate)}/day`
-          };
-        case 'SAVINGS':
-          return {
-            primary: formatPHP(Math.max(0, m.pureNetAfterRemainingBills)),
-            sub: `Net savings • ${formatPHP(m.dailySavingsRate)}/day`
-          };
-        case 'DAILY_SPEND':
-          return {
-            primary: `${formatPHP(m.dailyPocketCap)}/day`,
-            sub: `Needs ${formatPHP(m.dailyNeedsRate)} + Wants ${formatPHP(m.dailyWantsRate)}`
-          };
-        case 'NEEDS_ONLY':
-          return {
-            primary: `${formatPHP(m.dailyNeedsRate)}/day`,
-            sub: `Essentials allowance (${state.settings.pctNeeds}%)`
-          };
-        case 'WANTS_ONLY':
-          return {
-            primary: `${formatPHP(m.dailyWantsRate)}/day`,
-            sub: `Lifestyle allowance (${state.settings.pctWants}%)`
-          };
-        default:
-          return {
-            primary: `${formatPHP(m.dailySavingsRate * 5)}/wk`,
-            sub: escapeHtml(w.note || 'Custom stash')
-          };
-      }
-    }
-
-    function renderWalletRouter(m) {
-      const grid = document.getElementById('walletRouterGrid');
-      const dotColors = {
-        emerald: 'bg-emerald-400',
-        amber: 'bg-amber-400',
-        sky: 'bg-sky-400',
-        purple: 'bg-purple-400'
-      };
-      const textColors = {
-        emerald: 'text-emerald-300',
-        amber: 'text-amber-300',
-        sky: 'text-sky-300',
-        purple: 'text-purple-300'
-      };
-
-      grid.innerHTML = state.wallets.map(w => {
-        const info = getWalletRouteMetrics(w, m);
-        const dot = dotColors[w.color] || 'bg-emerald-400';
-        const txt = textColors[w.color] || 'text-emerald-300';
-        return `
-          <div onclick="openEditWalletsModal()" class="cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl px-3.5 py-2.5 border border-white/10 transition flex flex-col justify-between gap-1">
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="w-2 h-2 rounded-full shrink-0 ${dot}"></span>
-                <span class="text-white font-bold truncate">${escapeHtml(w.name)}</span>
-              </div>
-              <span class="${txt} font-extrabold tabular-nums shrink-0">${info.primary}</span>
-            </div>
-            <div class="flex items-center justify-between text-[10px] text-slate-400">
-              <span class="truncate">${escapeHtml(w.roleLabel)}</span>
-              <span class="truncate ml-2">${info.sub}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderExpenseTable(m) {
-      const tbody = document.getElementById('expenseTableBody');
-      tbody.innerHTML = '';
-
-      if (state.expenses.length === 0) {
-        tbody.innerHTML = `
+    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px; background:var(--card-2); padding:8px 10px; border-radius:9px;">
+      <span>Needs: <strong id="sum-needs">₱0.00</strong></span>
+      <span>Wants: <strong id="sum-wants">₱0.00</strong></span>
+      <span>Rollover: <strong id="sum-left" class="green">₱0.00</strong></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
           <tr>
-            <td colspan="6" class="py-8 px-4 text-center text-xs text-slate-400">
-              No daily expenses logged yet. Add your first day above!
-            </td>
+            <th>Date</th>
+            <th class="num">Needs</th>
+            <th class="num">Wants</th>
+            <th class="num">Left (+/-)</th>
+            <th class="num">Actions</th>
           </tr>
-        `;
-      }
+        </thead>
+        <tbody id="log-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager hidden" id="log-pager">
+      <button class="btn-secondary" id="btn-prev-page" onclick="changePage(-1)">← Prev</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button class="btn-secondary" id="btn-next-page" onclick="changePage(1)">Next →</button>
+    </div>
+  </div>
+</section>
 
-      let runningRollover = 0;
+<!-- LOANS & BILLS TAB -->
+<section id="view-loans" class="hidden">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Monthly Bills, Goals & Loans</div>
+      <span class="sub" id="loans-total-badge">₱0.00/mo</span>
+    </div>
+    <p class="sub" style="margin-top:0; margin-bottom:10px;">
+      Mark a loan <strong>Paid Off Forever</strong> once settled in full—its monthly deduction drops to ₱0 and immediately boosts your daily 50/30/20 allowances.
+    </p>
+    <div id="loans-list"></div>
+  </div>
 
-      state.expenses.forEach(exp => {
-        const cap = exp.dayType === 'WORK' ? m.dailyPocketCap : 0;
-        const spent = Number(exp.needs) + Number(exp.wants);
-        const dayDiff = cap - spent;
-        runningRollover += dayDiff;
+  <div class="card">
+    <div class="card-title">Add New Bill, Goal, or Loan</div>
+    <div class="form-grid">
+      <div>
+        <label>Commitment Name</label>
+        <input type="text" id="bill-name" placeholder="e.g. Installment / Savings Goal" />
+      </div>
+      <div>
+        <label>Monthly Amount (₱)</label>
+        <input type="number" step="0.01" id="bill-amt" placeholder="0.00" />
+      </div>
+      <div>
+        <label>Already Paid This Month (₱)</label>
+        <input type="number" step="0.01" id="bill-paid" placeholder="0.00" />
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="bill-status">
+          <option value="active">Active Monthly</option>
+          <option value="paid_forever">Paid Off Forever</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="addBill()">+ Add Commitment</button>
+  </div>
+</section>
 
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer';
-        tr.onclick = (e) => {
-          if (e.target.closest('button')) return;
-          openEditExpenseModal(exp.id);
-        };
+<!-- EDIT SPLITS & PAY TAB -->
+<section id="view-settings" class="hidden">
+  <div class="card">
+    <div class="card-title">Income & Work Schedule</div>
+    <div class="form-grid">
+      <div>
+        <label>Total Salary Earned So Far (₱)</label>
+        <input type="number" step="0.01" id="set-earned" onchange="saveSettings()" />
+      </div>
+      <div>
+        <label>Daily Pay Rate (₱)</label>
+        <input type="number" step="0.01" id="set-rate" onchange="saveSettings()" />
+      </div>
+      <div>
+        <label>Working Days per Month</label>
+        <input type="number" step="1" id="set-days" onchange="saveSettings()" />
+      </div>
+      <div>
+        <label>Transfer Batch (Workdays)</label>
+        <input type="number" step="1" id="set-batch" onchange="saveSettings()" />
+      </div>
+    </div>
+  </div>
 
-        const isNW = exp.dayType === 'NW';
-        tr.innerHTML = `
-          <td class="py-2.5 px-3 sm:px-4 font-medium">
-            <div class="flex items-center gap-1.5">
-              <span>${escapeHtml(exp.date)}</span>
-              ${isNW ? '<span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">OFF</span>' : ''}
-            </div>
-            ${exp.note ? `<div class="text-[10px] text-slate-400 truncate max-w-[120px]">${escapeHtml(exp.note)}</div>` : ''}
-          </td>
-          <td class="py-2.5 px-3 text-right text-slate-700 dark:text-slate-300">${formatPHP(exp.needs)}</td>
-          <td class="py-2.5 px-3 text-right text-slate-700 dark:text-slate-300">${formatPHP(exp.wants)}</td>
-          <td class="py-2.5 px-3 text-right font-semibold ${dayDiff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
-            ${formatSignedPHP(dayDiff)}
-          </td>
-          <td class="py-2.5 px-3 text-right hidden sm:table-cell font-medium ${runningRollover >= 0 ? 'text-slate-600 dark:text-slate-300' : 'text-rose-500'}">
-            ${formatSignedPHP(runningRollover)}
-          </td>
-          <td class="py-2.5 px-2 text-center whitespace-nowrap">
-            <button onclick="openEditExpenseModal('${exp.id}')" class="text-slate-400 hover:text-sky-500 p-1 rounded transition" title="Edit Entry">✎</button>
-            <button onclick="deleteExpense('${exp.id}')" class="text-slate-400 hover:text-rose-500 p-1 rounded transition" title="Delete Entry">✕</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Custom Percentage Splits</div>
+      <span class="pill pill-green" id="pct-total-badge">Total: 100%</span>
+    </div>
+    <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+      <button class="btn-secondary" onclick="applyPreset(50,30,20)">50 / 30 / 20 (Classic)</button>
+      <button class="btn-secondary" onclick="applyPreset(60,25,15)">60 / 25 / 15 (Aggressive Save)</button>
+      <button class="btn-secondary" onclick="applyPreset(40,40,20)">40 / 40 / 20 (Student Flex)</button>
+    </div>
+    <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
+      <div>
+        <label>Savings %</label>
+        <input type="number" step="1" id="set-pct-sav" onchange="saveSettings()" />
+      </div>
+      <div>
+        <label>Needs %</label>
+        <input type="number" step="1" id="set-pct-need" onchange="saveSettings()" />
+      </div>
+      <div>
+        <label>Wants %</label>
+        <input type="number" step="1" id="set-pct-want" onchange="saveSettings()" />
+      </div>
+    </div>
+  </div>
+</section>
 
-      const tfoot = document.getElementById('expenseTableFoot');
-      tfoot.innerHTML = `
-        <tr>
-          <td class="py-3 px-3 sm:px-4">TOTAL (${m.loggedWorkdays} Workdays)</td>
-          <td class="py-3 px-3 text-right text-sky-600 dark:text-sky-400">${formatPHP(m.totalNeedsSpent)}</td>
-          <td class="py-3 px-3 text-right text-purple-600 dark:text-purple-400">${formatPHP(m.totalWantsSpent)}</td>
-          <td class="py-3 px-3 text-right ${m.netDailyRollover >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
-            ${formatSignedPHP(m.netDailyRollover)}
-          </td>
-          <td class="py-3 px-3 text-right hidden sm:table-cell">${formatSignedPHP(m.netDailyRollover)}</td>
-          <td></td>
-        </tr>
-      `;
+<!-- WALLET EDITOR MODAL -->
+<div class="modal-backdrop hidden" id="wallet-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;">Customize Smart Wallet Router</h3>
+      <button class="btn-icon" onclick="closeModal('wallet-modal')">✕</button>
+    </div>
+    <p class="sub" style="margin-top:0; margin-bottom:12px;">
+      Configure where your money is parked. Each wallet automatically calculates its live peso balance based on the rule you assign.
+    </p>
+    <div id="wallet-editor-list"></div>
+    <button class="btn-secondary" style="width:100%; margin-bottom:10px;" onclick="addWalletSlot()">+ Add Another Bank / Wallet</button>
+    <button class="btn-primary" onclick="saveWallets()">Save Wallet Setup</button>
+  </div>
+</div>
+
+<!-- EDIT LOG MODAL -->
+<div class="modal-backdrop hidden" id="edit-log-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;">Edit Daily Entry</h3>
+      <button class="btn-icon" onclick="closeModal('edit-log-modal')">✕</button>
+    </div>
+    <input type="hidden" id="edit-log-id" />
+    <div class="form-grid">
+      <div>
+        <label>Date</label>
+        <input type="text" id="edit-log-date" />
+      </div>
+      <div>
+        <label>Day Status</label>
+        <select id="edit-log-type">
+          <option value="work">Workday (+Daily Cap)</option>
+          <option value="off">Rest / Off Day (₱0 Cap)</option>
+        </select>
+      </div>
+      <div>
+        <label>Needs Spent (₱)</label>
+        <input type="number" step="0.01" id="edit-log-needs" />
+      </div>
+      <div>
+        <label>Wants Spent (₱)</label>
+        <input type="number" step="0.01" id="edit-log-wants" />
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>Note</label>
+      <input type="text" id="edit-log-note" />
+    </div>
+    <button class="btn-primary" onclick="saveEditLog()">Save Changes</button>
+  </div>
+</div>
+
+<!-- EDIT BILL MODAL -->
+<div class="modal-backdrop hidden" id="edit-bill-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;">Edit Commitment</h3>
+      <button class="btn-icon" onclick="closeModal('edit-bill-modal')">✕</button>
+    </div>
+    <input type="hidden" id="edit-bill-id" />
+    <div class="form-grid">
+      <div>
+        <label>Name</label>
+        <input type="text" id="edit-bill-name" />
+      </div>
+      <div>
+        <label>Monthly Amount (₱)</label>
+        <input type="number" step="0.01" id="edit-bill-amt" />
+      </div>
+      <div>
+        <label>Paid This Month (₱)</label>
+        <input type="number" step="0.01" id="edit-bill-paid" />
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="edit-bill-status">
+          <option value="active">Active Monthly</option>
+          <option value="paid_forever">Paid Off Forever</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="saveEditBill()">Save Commitment</button>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-backdrop hidden" id="share-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;">Share Tracker</h3>
+      <button class="btn-icon" onclick="closeModal('share-modal')">✕</button>
+    </div>
+    <p class="sub" style="margin-top:0;">
+      <strong>Privacy Safe:</strong> Your personal balances stay on your own device unless you specifically share a Snapshot link.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn-primary" onclick="copyBlankLink()">Copy Blank Template Link (For Friends)</button>
+      <button class="btn-secondary" onclick="copySnapshotLink()">Copy Snapshot Link (Transfer My Data)</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP MODAL -->
+<div class="modal-backdrop hidden" id="backup-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;">Backup, Export & Month Cycle</h3>
+      <button class="btn-icon" onclick="closeModal('backup-modal')">✕</button>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn-primary" onclick="exportBackupJSON()">Download Backup File (.json)</button>
+      <button class="btn-secondary" onclick="document.getElementById('import-file').click()">Restore Backup File (.json)</button>
+      <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBackupJSON(event)" />
+      <button class="btn-secondary" onclick="copyNotesSummary()">Copy Text Summary (For Notes App)</button>
+      <button class="btn-secondary" onclick="archiveAndStartNewMonth()">Archive Month & Start Next Cycle</button>
+      <button class="btn-secondary" style="color:var(--red);" onclick="resetAllBlank()">Clear All Data (Reset to ₱0.00)</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Done!</div>
+
+<script>
+const STORAGE_KEY = "pesoflow_universal_v2";
+const PAGE_SIZE = 15;
+let currentPage = 1;
+
+const BLANK_STATE = {
+  earned: 0,
+  dailyRate: 700,
+  workDaysPerMonth: 20,
+  batchDays: 5,
+  pctSav: 50,
+  pctNeed: 30,
+  pctWant: 20,
+  wallets: [
+    { id: 1, name: "MariBank", role: "Main Hub & Personal Savings", rule: "hub_net_savings", customTarget: 0, color: "amber" },
+    { id: 2, name: "Maya Savings / Goals", role: "Dedicated Goal Vault", rule: "goal_reserve", customTarget: 2500, color: "green" },
+    { id: 3, name: "GCash / Cash", role: "Daily Needs & Wants", rule: "daily_pocket", customTarget: 0, color: "blue" }
+  ],
+  bills: [],
+  logs: [],
+  archivedMonths: []
+};
+
+function loadInitialState() {
+  const hash = window.location.hash || "";
+  if (hash.startsWith("#data=")) {
+    try {
+      const decoded = JSON.parse(decodeURIComponent(atob(hash.slice(6))));
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+      return { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...decoded };
+    } catch (e) {}
+  }
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      return { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...JSON.parse(saved) };
+    } catch (e) {}
+  }
+  return JSON.parse(JSON.stringify(BLANK_STATE));
+}
+
+let state = loadInitialState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function fmt(n) {
+  return "₱" + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2300);
+}
+
+function switchTab(name) {
+  ["overview", "daily", "loans", "settings"].forEach(t => {
+    document.getElementById("view-" + t).classList.toggle("hidden", t !== name);
+    document.getElementById("tab-" + t).classList.toggle("active", t === name);
+  });
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add("hidden");
+}
+
+function parseDateValue(str) {
+  // Supports MM/DD/YY or MM/DD/YYYY or YYYY-MM-DD
+  const parts = String(str || "").split(/[\/\-]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime() || 0;
+    }
+    let yr = Number(parts[2]);
+    if (yr < 100) yr += 2000;
+    return new Date(yr, Number(parts[0]) - 1, Number(parts[1])).getTime() || 0;
+  }
+  return 0;
+}
+
+function getMonthKey(str) {
+  const parts = String(str || "").split(/[\/\-]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, "0")}`;
+    let yr = Number(parts[2]);
+    if (yr < 100) yr += 2000;
+    return `${yr}-${parts[0].padStart(2, "0")}`;
+  }
+  return "Other";
+}
+
+function formatMonthLabel(key) {
+  if (key === "Other") return "Other Dates";
+  const [y, m] = key.split("-");
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${names[Number(m) - 1] || m} ${y}`;
+}
+
+function resetPageAndRender() {
+  currentPage = 1;
+  render();
+}
+
+function changePage(delta) {
+  currentPage += delta;
+  render();
+}
+
+function render() {
+  const activeBills = state.bills.filter(b => b.status === "active");
+  const activeMonthlyBills = activeBills.reduce((s, b) => s + Number(b.monthly), 0);
+
+  const monthlyIncome = state.dailyRate * state.workDaysPerMonth;
+  const remainingPool = Math.max(0, monthlyIncome - activeMonthlyBills);
+
+  const savMo = remainingPool * (state.pctSav / 100);
+  const needMo = remainingPool * (state.pctNeed / 100);
+  const wantMo = remainingPool * (state.pctWant / 100);
+
+  const fixedDay = activeMonthlyBills / state.workDaysPerMonth;
+  const savDay = savMo / state.workDaysPerMonth;
+  const needDay = needMo / state.workDaysPerMonth;
+  const wantDay = wantMo / state.workDaysPerMonth;
+  const dailySpendCap = needDay + wantDay;
+
+  // Overall totals across current active cycle
+  let allNeeds = 0, allWants = 0, allWorkCount = 0;
+  state.logs.forEach(item => {
+    allNeeds += Number(item.needs);
+    allWants += Number(item.wants);
+    if (item.type === "work") allWorkCount++;
+  });
+
+  const totDailySpent = allNeeds + allWants;
+  const earnedCap = allWorkCount * dailySpendCap;
+  const netRollover = earnedCap - totDailySpent;
+
+  const totalPaidThisMonth = state.bills.reduce((s, b) => s + Number(b.paidThisMonth), 0);
+  const unpaidThisMonth = activeBills.reduce((s, b) => s + Math.max(0, Number(b.monthly) - Number(b.paidThisMonth)), 0);
+
+  const cashLeft = state.earned - totDailySpent - totalPaidThisMonth;
+  const pureNet = cashLeft - unpaidThisMonth;
+
+  // Populate dynamic Month/Year filter dropdown
+  const monthSelect = document.getElementById("filter-month");
+  const prevMonthVal = monthSelect.value;
+  const monthSet = new Set();
+  state.logs.forEach(l => monthSet.add(getMonthKey(l.date)));
+  const sortedMonths = Array.from(monthSet).sort().reverse();
+  monthSelect.innerHTML = `<option value="all">All Months (${state.logs.length})</option>` +
+    sortedMonths.map(m => `<option value="${m}">${formatMonthLabel(m)}</option>`).join("");
+  if (sortedMonths.includes(prevMonthVal) || prevMonthVal === "all") {
+    monthSelect.value = prevMonthVal;
+  }
+
+  // Filter & Sort logs for Daily Log table
+  const fMonth = monthSelect.value;
+  const fType = document.getElementById("filter-type").value;
+  const sortMode = document.getElementById("sort-logs").value;
+  const searchQ = document.getElementById("search-logs").value.trim().toLowerCase();
+
+  let filteredLogs = state.logs.filter(item => {
+    if (fMonth !== "all" && getMonthKey(item.date) !== fMonth) return false;
+    if (fType === "work" && item.type !== "work") return false;
+    if (fType === "off" && item.type !== "off") return false;
+    const cap = item.type === "work" ? dailySpendCap : 0;
+    const spent = Number(item.needs) + Number(item.wants);
+    if (fType === "over" && spent <= cap) return false;
+    if (searchQ && !(`${item.date} ${item.note || ""}`.toLowerCase().includes(searchQ))) return false;
+    return true;
+  });
+
+  filteredLogs.sort((a, b) => {
+    const spentA = Number(a.needs) + Number(a.wants);
+    const spentB = Number(b.needs) + Number(b.wants);
+    if (sortMode === "newest") return (parseDateValue(b.date) - parseDateValue(a.date)) || (b.id - a.id);
+    if (sortMode === "oldest") return (parseDateValue(a.date) - parseDateValue(b.date)) || (a.id - b.id);
+    if (sortMode === "highest") return spentB - spentA;
+    if (sortMode === "lowest") return spentA - spentB;
+    return 0;
+  });
+
+  // Summary bar reflects current filter!
+  let filtNeeds = 0, filtWants = 0, filtWork = 0;
+  filteredLogs.forEach(item => {
+    filtNeeds += Number(item.needs);
+    filtWants += Number(item.wants);
+    if (item.type === "work") filtWork++;
+  });
+  const filtRollover = (filtWork * dailySpendCap) - (filtNeeds + filtWants);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredLogs.slice(startIdx, startIdx + PAGE_SIZE);
+
+  const tbody = document.getElementById("log-tbody");
+  tbody.innerHTML = "";
+  pageItems.forEach(item => {
+    const cap = item.type === "work" ? dailySpendCap : 0;
+    const diff = cap - (Number(item.needs) + Number(item.wants));
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <strong>${item.date}</strong>
+        ${item.type === "off" ? '<span class="pill pill-amber">Off</span>' : ''}
+        ${item.note ? `<div class="sub">${item.note}</div>` : ''}
+      </td>
+      <td class="num">${fmt(item.needs)}</td>
+      <td class="num">${fmt(item.wants)}</td>
+      <td class="num ${diff >= 0 ? 'green' : 'red'}">${diff >= 0 ? '+' : ''}${fmt(diff)}</td>
+      <td class="num" style="white-space:nowrap;">
+        <button class="btn-icon" onclick="openEditLog(${item.id})">✎</button>
+        <button class="btn-icon" onclick="delLog(${item.id})">×</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (filteredLogs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">No matching entries found.</td></tr>`;
+  }
+
+  document.getElementById("log-count-badge").textContent = `${filteredLogs.length} entries`;
+  const pager = document.getElementById("log-pager");
+  if (filteredLogs.length > PAGE_SIZE) {
+    pager.classList.remove("hidden");
+    document.getElementById("page-info").textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById("btn-prev-page").disabled = currentPage <= 1;
+    document.getElementById("btn-next-page").disabled = currentPage >= totalPages;
+  } else {
+    pager.classList.add("hidden");
+  }
+
+  // Header & Overview metrics
+  document.getElementById("hdr-sub").textContent = `${state.pctSav}/${state.pctNeed}/${state.pctWant} Split • ${fmt(state.dailyRate)}/day • ${state.workDaysPerMonth} workdays/mo`;
+  document.getElementById("ov-earned").textContent = fmt(state.earned);
+  document.getElementById("ov-workdays-logged").textContent = `${allWorkCount} workdays logged`;
+  document.getElementById("ov-cash-left").textContent = fmt(cashLeft);
+  document.getElementById("ov-cash-left").className = "metric-val " + (cashLeft >= 0 ? "green" : "red");
+  document.getElementById("ov-pure-net").textContent = `${fmt(pureNet)} after ${fmt(unpaidThisMonth)} unpaid bills`;
+  document.getElementById("ov-daily-spent").textContent = fmt(totDailySpent);
+  document.getElementById("ov-rollover").textContent = `${netRollover >= 0 ? '+' : ''}${fmt(netRollover)} vs ${allWorkCount}-day cap`;
+  document.getElementById("ov-rollover").className = "metric-sub " + (netRollover >= 0 ? "green" : "red");
+  document.getElementById("ov-bills-paid").textContent = fmt(totalPaidThisMonth);
+  document.getElementById("ov-bills-unpaid").textContent = `${fmt(unpaidThisMonth)} unpaid this mo`;
+
+  // Allotments
+  document.getElementById("ov-bills-count").textContent = `${activeBills.length} active commitments`;
+  document.getElementById("ov-fixed-mo").textContent = `${fmt(activeMonthlyBills)} / mo`;
+  document.getElementById("ov-fixed-day").textContent = `${fmt(fixedDay)} / workday`;
+
+  document.getElementById("lbl-sav-pct").textContent = `${state.pctSav}% SAVINGS`;
+  document.getElementById("ov-sav-mo").textContent = `${fmt(savMo)} / mo`;
+  document.getElementById("ov-sav-day").textContent = `${fmt(savDay)} / workday`;
+  document.getElementById("ov-sav-5d").textContent = `${fmt(savDay * state.batchDays)} per ${state.batchDays} workdays`;
+
+  document.getElementById("lbl-need-pct").textContent = `${state.pctNeed}% NEEDS`;
+  document.getElementById("ov-need-mo").textContent = `${fmt(needMo)} / mo`;
+  document.getElementById("ov-need-day").textContent = `${fmt(needDay)} / workday`;
+  document.getElementById("ov-need-5d").textContent = `${fmt(needDay * state.batchDays)} per ${state.batchDays} workdays`;
+
+  document.getElementById("lbl-want-pct").textContent = `${state.pctWant}% WANTS`;
+  document.getElementById("ov-want-mo").textContent = `${fmt(wantMo)} / mo`;
+  document.getElementById("ov-want-day").textContent = `${fmt(wantDay)} / workday`;
+  document.getElementById("ov-want-5d").textContent = `${fmt(wantDay * state.batchDays)} per ${state.batchDays} workdays`;
+
+  document.getElementById("daily-cap-badge").textContent = `Cap: ${fmt(dailySpendCap)}/workday`;
+  document.getElementById("sum-needs").textContent = fmt(filtNeeds);
+  document.getElementById("sum-wants").textContent = fmt(filtWants);
+  const sumLeftEl = document.getElementById("sum-left");
+  sumLeftEl.textContent = `${filtRollover >= 0 ? '+' : ''}${fmt(filtRollover)}`;
+  sumLeftEl.className = filtRollover >= 0 ? "green" : "red";
+
+  // Render Smart Wallets
+  const walletContainer = document.getElementById("wallet-cards");
+  walletContainer.innerHTML = "";
+  const colorMap = { amber: "var(--amber)", green: "var(--green)", blue: "var(--blue)", purple: "var(--purple)" };
+
+  state.wallets.forEach(w => {
+    let mainVal = "₱0.00";
+    let subText = "";
+    const c = colorMap[w.color] || "var(--blue)";
+
+    if (w.rule === "hub_net_savings") {
+      mainVal = fmt(Math.max(0, cashLeft));
+      subText = `Net savings ${fmt(Math.max(0, pureNet))} + Unpaid bills ${fmt(unpaidThisMonth)}`;
+    } else if (w.rule === "goal_reserve") {
+      const target = Number(w.customTarget || 0);
+      const perBatch = (target / state.workDaysPerMonth) * state.batchDays;
+      mainVal = `${fmt(target)}/mo`;
+      subText = `Transfer ${fmt(perBatch)} every ${state.batchDays} workdays (${fmt(target / state.workDaysPerMonth)}/day)`;
+    } else if (w.rule === "daily_pocket") {
+      mainVal = `${fmt(dailySpendCap)}/day`;
+      subText = `${fmt(dailySpendCap * state.batchDays)} per ${state.batchDays} days (Needs ${fmt(needDay)} + Wants ${fmt(wantDay)})`;
+    } else if (w.rule === "unpaid_bills_only") {
+      mainVal = fmt(unpaidThisMonth);
+      subText = `Bills reserve: ${fmt(fixedDay)}/workday`;
+    } else if (w.rule === "pure_savings_only") {
+      mainVal = fmt(Math.max(0, pureNet));
+      subText = `Target rate: ${fmt(savDay)}/workday`;
     }
 
-    function renderObligationsList() {
-      const container = document.getElementById('obligationsList');
-      container.innerHTML = '';
+    const div = document.createElement("div");
+    div.className = "wallet-card";
+    div.innerHTML = `
+      <div>
+        <div style="font-weight:700; font-size:13.5px;"><span class="dot" style="background:${c};"></span>${w.name}</div>
+        <div class="sub">${w.role}</div>
+        <div class="sub" style="margin-top:2px;">${subText}</div>
+      </div>
+      <div style="text-align:right; font-weight:750; font-size:15px; color:${c}; white-space:nowrap;">
+        ${mainVal}
+      </div>
+    `;
+    walletContainer.appendChild(div);
+  });
 
-      if (state.obligations.length === 0) {
-        container.innerHTML = `
-          <div class="rounded-2xl bg-surface-cardLight dark:bg-surface-cardDark p-6 border border-surface-borderLight dark:border-surface-borderDark text-center text-xs text-slate-400">
-            No monthly bills or installment loans added yet. Add recurring commitments below so your daily allowances automatically reserve money for them.
-          </div>
-        `;
-        return;
-      }
+  // Render Loans & Bills
+  document.getElementById("loans-total-badge").textContent = `${fmt(activeMonthlyBills)}/mo`;
+  const loansList = document.getElementById("loans-list");
+  loansList.innerHTML = "";
 
-      state.obligations.forEach(ob => {
-        const card = document.createElement('div');
-        const isPaidOff = ob.fullyPaidForever;
+  if (state.bills.length === 0) {
+    loansList.innerHTML = `<div style="text-align:center; color:var(--muted); font-size:13px; padding:12px;">No loans or fixed bills added yet.</div>`;
+  }
 
-        card.className = `rounded-2xl p-4 border transition-all ${
-          isPaidOff
-            ? 'bg-emerald-500/5 border-emerald-500/30'
-            : 'bg-surface-cardLight dark:bg-surface-cardDark border-surface-borderLight dark:border-surface-borderDark shadow-sm'
-        }`;
-
-        card.innerHTML = `
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="space-y-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                  ob.type === 'LOAN'
-                    ? 'bg-purple-500/15 text-purple-600 dark:text-purple-300'
-                    : 'bg-sky-500/15 text-sky-600 dark:text-sky-300'
-                }">${ob.type}</span>
-                <h4 class="text-sm font-bold ${isPaidOff ? 'line-through text-slate-400' : ''}">${escapeHtml(ob.name)}</h4>
-                ${isPaidOff ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-600 dark:text-emerald-300">✓ Paid Off Forever</span>' : ''}
-              </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                Monthly Rate: <strong class="text-slate-700 dark:text-slate-200">${formatPHP(ob.monthlyAmount)}/mo</strong>
-                ${ob.paidThisMonth ? ` • <span class="text-emerald-600 dark:text-emerald-400 font-medium">Paid ${formatPHP(ob.amountPaidThisMonth)} this month</span>` : ' • <span class="text-amber-600 dark:text-amber-400 font-medium">Unpaid this month</span>'}
-              </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-              <button onclick="openEditObligationModal('${ob.id}')" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-surface-borderLight dark:border-surface-borderDark hover:border-sky-500 transition">
-                ✎ Edit
-              </button>
-
-              <button onclick="togglePaidThisMonth('${ob.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                ob.paidThisMonth
-                  ? 'bg-emerald-600 text-white border-emerald-600'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-surface-borderLight dark:border-surface-borderDark hover:border-emerald-500'
-              }">
-                ${ob.paidThisMonth ? '✓ Paid Mo.' : 'Mark Paid'}
-              </button>
-
-              ${ob.type === 'LOAN' ? `
-                <button onclick="toggleFullyPaidForever('${ob.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                  isPaidOff
-                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-surface-borderLight dark:border-surface-borderDark hover:border-amber-500'
-                }">
-                  ${isPaidOff ? 'Undo Payoff' : 'Pay Off Full'}
-                </button>
-              ` : ''}
-
-              <button onclick="deleteObligation('${ob.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 transition" title="Remove">✕</button>
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function renderRateBreakdown(m) {
-      const tbody = document.getElementById('rateBreakdownBody');
-      const rows = [
-        {
-          label: 'Monthly Bills & Loans',
-          color: 'text-amber-600 dark:text-amber-400',
-          daily: m.dailyBillsRate,
-          weekly: m.dailyBillsRate * 5,
-          monthly: m.activeMonthlyBills
-        },
-        {
-          label: `${state.settings.pctSavings}% Savings`,
-          color: 'text-emerald-600 dark:text-emerald-400',
-          daily: m.dailySavingsRate,
-          weekly: m.dailySavingsRate * 5,
-          monthly: m.monthlyAfterBills * m.savRatio
-        },
-        {
-          label: `${state.settings.pctNeeds}% Needs`,
-          color: 'text-sky-600 dark:text-sky-400',
-          daily: m.dailyNeedsRate,
-          weekly: m.dailyNeedsRate * 5,
-          monthly: m.monthlyAfterBills * m.needRatio
-        },
-        {
-          label: `${state.settings.pctWants}% Wants`,
-          color: 'text-purple-600 dark:text-purple-400',
-          daily: m.dailyWantsRate,
-          weekly: m.dailyWantsRate * 5,
-          monthly: m.monthlyAfterBills * m.wantRatio
+  state.bills.forEach(b => {
+    const isForever = b.status === "paid_forever";
+    const isPaidMo = Number(b.paidThisMonth) >= Number(b.monthly) && Number(b.monthly) > 0;
+    const div = document.createElement("div");
+    div.className = "row";
+    div.innerHTML = `
+      <div>
+        <strong>${b.name}</strong>
+        <div class="sub">Monthly: ${fmt(b.monthly)} • Paid this mo: ${fmt(b.paidThisMonth)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+        ${isForever
+          ? '<span class="pill pill-green">Paid Off Forever</span>'
+          : isPaidMo
+            ? '<span class="pill pill-blue">Paid This Mo</span>'
+            : `<button class="btn-payoff" onclick="markPaidMonth(${b.id})">Pay Mo</button>`
         }
-      ];
+        ${!isForever ? `<button class="btn-payoff" onclick="markPaidForever(${b.id})">Pay Off Full</button>` : ''}
+        <button class="btn-icon" onclick="openEditBill(${b.id})">✎</button>
+        <button class="btn-icon" onclick="delBill(${b.id})">×</button>
+      </div>
+    `;
+    loansList.appendChild(div);
+  });
 
-      tbody.innerHTML = rows.map(r => `
-        <tr>
-          <td class="py-2.5 px-3 font-semibold ${r.color}">${r.label}</td>
-          <td class="py-2.5 px-3 text-right font-medium">${formatPHP(r.daily)}</td>
-          <td class="py-2.5 px-3 text-right font-bold">${formatPHP(r.weekly)}</td>
-          <td class="py-2.5 px-3 text-right text-slate-500 dark:text-slate-400">${formatPHP(r.monthly)}</td>
-        </tr>
-      `).join('') + `
-        <tr class="bg-slate-50 dark:bg-slate-900/60 font-bold">
-          <td class="py-2.5 px-3">Total Income</td>
-          <td class="py-2.5 px-3 text-right">${formatPHP(state.settings.baseDailyWage)}</td>
-          <td class="py-2.5 px-3 text-right">${formatPHP(state.settings.baseDailyWage * 5)}</td>
-          <td class="py-2.5 px-3 text-right">${formatPHP(m.monthlyGrossTarget)}</td>
-        </tr>
-      `;
-    }
+  // Populate Settings tab
+  document.getElementById("set-earned").value = state.earned;
+  document.getElementById("set-rate").value = state.dailyRate;
+  document.getElementById("set-days").value = state.workDaysPerMonth;
+  document.getElementById("set-batch").value = state.batchDays;
+  document.getElementById("set-pct-sav").value = state.pctSav;
+  document.getElementById("set-pct-need").value = state.pctNeed;
+  document.getElementById("set-pct-want").value = state.pctWant;
 
-    function renderPayoutsList() {
-      const container = document.getElementById('payoutHistoryList');
-      if (state.payouts.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No income logged yet. Tap "+1 Day Pay" or add a payday above.</p>`;
-        return;
-      }
-      container.innerHTML = state.payouts.map(p => `
-        <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-surface-borderLight dark:border-surface-borderDark text-xs sm:text-sm">
-          <span class="font-medium">${escapeHtml(p.label)}</span>
-          <div class="flex items-center gap-2.5">
-            <span class="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">${formatPHP(p.amount)}</span>
-            <button onclick="deletePayout('${p.id}')" class="text-slate-400 hover:text-rose-500 transition">✕</button>
-          </div>
+  const pctSum = Number(state.pctSav) + Number(state.pctNeed) + Number(state.pctWant);
+  const pctBadge = document.getElementById("pct-total-badge");
+  pctBadge.textContent = `Total: ${pctSum}%`;
+  pctBadge.className = "pill " + (pctSum === 100 ? "pill-green" : "pill-red");
+}
+
+function quickAddDayPay() {
+  state.earned = Number(state.earned) + Number(state.dailyRate);
+  saveState(); render();
+  showToast(`Added +${fmt(state.dailyRate)} workday pay!`);
+}
+
+function saveSettings() {
+  state.earned = parseFloat(document.getElementById("set-earned").value) || 0;
+  state.dailyRate = parseFloat(document.getElementById("set-rate").value) || 0;
+  state.workDaysPerMonth = Math.max(1, parseInt(document.getElementById("set-days").value) || 20);
+  state.batchDays = Math.max(1, parseInt(document.getElementById("set-batch").value) || 5);
+  state.pctSav = parseFloat(document.getElementById("set-pct-sav").value) || 0;
+  state.pctNeed = parseFloat(document.getElementById("set-pct-need").value) || 0;
+  state.pctWant = parseFloat(document.getElementById("set-pct-want").value) || 0;
+  saveState(); render();
+}
+
+function applyPreset(s, n, w) {
+  state.pctSav = s; state.pctNeed = n; state.pctWant = w;
+  saveState(); render();
+  showToast(`Applied ${s}/${n}/${w} split!`);
+}
+
+function addLog() {
+  const date = document.getElementById("log-date").value.trim() || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const type = document.getElementById("log-type").value;
+  const needs = parseFloat(document.getElementById("log-needs").value) || 0;
+  const wants = parseFloat(document.getElementById("log-wants").value) || 0;
+  const note = document.getElementById("log-note").value.trim();
+  state.logs.push({ id: Date.now(), date, type, needs, wants, note });
+  document.getElementById("log-date").value = "";
+  document.getElementById("log-needs").value = "";
+  document.getElementById("log-wants").value = "";
+  document.getElementById("log-note").value = "";
+  currentPage = 1;
+  saveState(); render();
+  showToast("Day logged!");
+}
+
+function openEditLog(id) {
+  const item = state.logs.find(l => l.id === id);
+  if (!item) return;
+  document.getElementById("edit-log-id").value = item.id;
+  document.getElementById("edit-log-date").value = item.date;
+  document.getElementById("edit-log-type").value = item.type;
+  document.getElementById("edit-log-needs").value = item.needs;
+  document.getElementById("edit-log-wants").value = item.wants;
+  document.getElementById("edit-log-note").value = item.note || "";
+  document.getElementById("edit-log-modal").classList.remove("hidden");
+}
+
+function saveEditLog() {
+  const id = Number(document.getElementById("edit-log-id").value);
+  const item = state.logs.find(l => l.id === id);
+  if (!item) return;
+  item.date = document.getElementById("edit-log-date").value.trim();
+  item.type = document.getElementById("edit-log-type").value;
+  item.needs = parseFloat(document.getElementById("edit-log-needs").value) || 0;
+  item.wants = parseFloat(document.getElementById("edit-log-wants").value) || 0;
+  item.note = document.getElementById("edit-log-note").value.trim();
+  closeModal("edit-log-modal");
+  saveState(); render();
+  showToast("Entry updated!");
+}
+
+function delLog(id) {
+  state.logs = state.logs.filter(l => l.id !== id);
+  saveState(); render();
+}
+
+function addBill() {
+  const name = document.getElementById("bill-name").value.trim();
+  const monthly = parseFloat(document.getElementById("bill-amt").value) || 0;
+  const paidThisMonth = parseFloat(document.getElementById("bill-paid").value) || 0;
+  const status = document.getElementById("bill-status").value;
+  if (!name) return;
+  state.bills.push({ id: Date.now(), name, monthly, paidThisMonth, status });
+  document.getElementById("bill-name").value = "";
+  document.getElementById("bill-amt").value = "";
+  document.getElementById("bill-paid").value = "";
+  saveState(); render();
+  showToast("Commitment added!");
+}
+
+function openEditBill(id) {
+  const b = state.bills.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById("edit-bill-id").value = b.id;
+  document.getElementById("edit-bill-name").value = b.name;
+  document.getElementById("edit-bill-amt").value = b.monthly;
+  document.getElementById("edit-bill-paid").value = b.paidThisMonth;
+  document.getElementById("edit-bill-status").value = b.status;
+  document.getElementById("edit-bill-modal").classList.remove("hidden");
+}
+
+function saveEditBill() {
+  const id = Number(document.getElementById("edit-bill-id").value);
+  const b = state.bills.find(x => x.id === id);
+  if (!b) return;
+  b.name = document.getElementById("edit-bill-name").value.trim();
+  b.monthly = parseFloat(document.getElementById("edit-bill-amt").value) || 0;
+  b.paidThisMonth = parseFloat(document.getElementById("edit-bill-paid").value) || 0;
+  b.status = document.getElementById("edit-bill-status").value;
+  closeModal("edit-bill-modal");
+  saveState(); render();
+  showToast("Commitment updated!");
+}
+
+function markPaidMonth(id) {
+  const b = state.bills.find(x => x.id === id);
+  if (b) { b.paidThisMonth = b.monthly; saveState(); render(); showToast("Marked paid for this month!"); }
+}
+
+function markPaidForever(id) {
+  const b = state.bills.find(x => x.id === id);
+  if (b) { b.status = "paid_forever"; saveState(); render(); showToast("Paid Off Forever! Daily cuts increased."); }
+}
+
+function delBill(id) {
+  state.bills = state.bills.filter(b => b.id !== id);
+  saveState(); render();
+}
+
+// Wallet Editor
+let tempWallets = [];
+function openWalletModal() {
+  tempWallets = JSON.parse(JSON.stringify(state.wallets));
+  renderWalletEditor();
+  document.getElementById("wallet-modal").classList.remove("hidden");
+}
+
+function renderWalletEditor() {
+  const list = document.getElementById("wallet-editor-list");
+  list.innerHTML = "";
+  tempWallets.forEach((w, idx) => {
+    const box = document.createElement("div");
+    box.style.cssText = "background:var(--card-2); border:1px solid var(--border); border-radius:12px; padding:10px; margin-bottom:10px;";
+    box.innerHTML = `
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <strong style="font-size:12px; color:var(--muted);">WALLET #${idx + 1}</strong>
+        <button class="btn-icon" style="color:var(--red);" onclick="removeWalletSlot(${idx})">Remove</button>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>Bank / App Name</label>
+          <input type="text" value="${w.name}" onchange="tempWallets[${idx}].name=this.value" />
         </div>
-      `).join('');
-    }
-
-    // =========================================================================
-    // 4. EDITABLE SMART WALLET ROUTER MODAL
-    // =========================================================================
-    function openEditWalletsModal() {
-      document.getElementById('editModalTitle').textContent = 'Customize Smart Wallet Router';
-      renderWalletEditorForm();
-      const modal = document.getElementById('editModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function renderWalletEditorForm() {
-      const routeOptions = [
-        { val: 'BILLS_AND_HUB', label: 'Main Hub & Unpaid Bills Reserve' },
-        { val: 'SAVINGS', label: 'Savings & Goal Vault' },
-        { val: 'DAILY_SPEND', label: 'Daily Needs + Wants Pocket' },
-        { val: 'NEEDS_ONLY', label: 'Daily Needs Only' },
-        { val: 'WANTS_ONLY', label: 'Daily Wants Only' },
-        { val: 'CUSTOM', label: 'Custom / Extra Stash' }
-      ];
-
-      const colorOptions = [
-        { val: 'amber', label: 'Amber' },
-        { val: 'emerald', label: 'Emerald' },
-        { val: 'sky', label: 'Sky Blue' },
-        { val: 'purple', label: 'Purple' }
-      ];
-
-      const itemsHtml = state.wallets.map((w, idx) => `
-        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-surface-borderLight dark:border-surface-borderDark space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Wallet / Account #${idx + 1}</span>
-            ${state.wallets.length > 1 ? `<button type="button" onclick="removeWalletSlot('${w.id}')" class="text-xs text-rose-500 hover:underline">Remove</button>` : ''}
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-[10px] text-slate-500 mb-0.5">Bank / App Name</label>
-              <input type="text" data-wid="${w.id}" data-field="name" value="${escapeHtml(w.name)}" placeholder="e.g. MariBank" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2.5 py-1.5 text-xs font-semibold" />
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500 mb-0.5">Role / Label</label>
-              <input type="text" data-wid="${w.id}" data-field="roleLabel" value="${escapeHtml(w.roleLabel)}" placeholder="e.g. Main Hub & Bills" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2.5 py-1.5 text-xs" />
-            </div>
-          </div>
-          <div class="grid grid-cols-3 gap-2">
-            <div class="col-span-2">
-              <label class="block text-[10px] text-slate-500 mb-0.5">Auto-Calculate Amount From</label>
-              <select data-wid="${w.id}" data-field="routeType" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2 py-1.5 text-xs">
-                ${routeOptions.map(o => `<option value="${o.val}" ${w.routeType === o.val ? 'selected' : ''}>${o.label}</option>`).join('')}
-              </select>
-            </div>
-            <div>
-              <label class="block text-[10px] text-slate-500 mb-0.5">Badge Color</label>
-              <select data-wid="${w.id}" data-field="color" class="wallet-inp w-full rounded-lg bg-white dark:bg-slate-800 border border-surface-borderLight dark:border-surface-borderDark px-2 py-1.5 text-xs">
-                ${colorOptions.map(c => `<option value="${c.val}" ${w.color === c.val ? 'selected' : ''}>${c.label}</option>`).join('')}
-              </select>
-            </div>
-          </div>
+        <div>
+          <label>Role / Label</label>
+          <input type="text" value="${w.role}" onchange="tempWallets[${idx}].role=this.value" />
         </div>
-      `).join('');
+        <div>
+          <label>Auto-Calculate Rule</label>
+          <select onchange="tempWallets[${idx}].rule=this.value; renderWalletEditor();">
+            <option value="hub_net_savings" ${w.rule==='hub_net_savings'?'selected':''}>Main Hub (Net Savings + Unpaid Bills)</option>
+            <option value="goal_reserve" ${w.rule==='goal_reserve'?'selected':''}>Dedicated Goal Vault (Custom Monthly Target)</option>
+            <option value="daily_pocket" ${w.rule==='daily_pocket'?'selected':''}>Daily Needs + Wants Pocket</option>
+            <option value="pure_savings_only" ${w.rule==='pure_savings_only'?'selected':''}>Pure Net Savings Only</option>
+            <option value="unpaid_bills_only" ${w.rule==='unpaid_bills_only'?'selected':''}>Unpaid Bills Reserve Only</option>
+          </select>
+        </div>
+        <div>
+          <label>Badge Color</label>
+          <select onchange="tempWallets[${idx}].color=this.value">
+            <option value="amber" ${w.color==='amber'?'selected':''}>Amber</option>
+            <option value="green" ${w.color==='green'?'selected':''}>Emerald</option>
+            <option value="blue" ${w.color==='blue'?'selected':''}>Sky Blue</option>
+            <option value="purple" ${w.color==='purple'?'selected':''}>Purple</option>
+          </select>
+        </div>
+      </div>
+      ${w.rule === 'goal_reserve' ? `
+        <div>
+          <label>Monthly Goal Target (₱)</label>
+          <input type="number" step="0.01" value="${w.customTarget || 0}" onchange="tempWallets[${idx}].customTarget=parseFloat(this.value)||0" />
+        </div>
+      ` : ''}
+    `;
+    list.appendChild(box);
+  });
+}
 
-      document.getElementById('editModalBody').innerHTML = `
-        <form onsubmit="saveWalletsForm(event)" class="space-y-3">
-          ${itemsHtml}
-          <button type="button" onclick="addWalletSlot()" class="w-full py-2 rounded-xl border border-dashed border-slate-400/50 text-xs font-semibold text-slate-500 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-500 transition">
-            + Add Another Bank / Wallet
-          </button>
-          <div class="flex gap-2 pt-2">
-            <button type="button" onclick="closeEditModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Cancel</button>
-            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Save Wallets</button>
-          </div>
-        </form>
-      `;
+function addWalletSlot() {
+  tempWallets.push({ id: Date.now(), name: "New Wallet", role: "Stash", rule: "pure_savings_only", customTarget: 0, color: "purple" });
+  renderWalletEditor();
+}
+
+function removeWalletSlot(idx) {
+  tempWallets.splice(idx, 1);
+  renderWalletEditor();
+}
+
+function saveWallets() {
+  state.wallets = tempWallets;
+  closeModal("wallet-modal");
+  saveState(); render();
+  showToast("Wallets updated!");
+}
+
+// Share, Backup & Export
+function openShareModal() { document.getElementById("share-modal").classList.remove("hidden"); }
+function openBackupModal() { document.getElementById("backup-modal").classList.remove("hidden"); }
+
+function copyBlankLink() {
+  const url = window.location.origin + window.location.pathname;
+  navigator.clipboard.writeText(url).then(() => { closeModal("share-modal"); showToast("Blank template link copied!"); });
+}
+
+function copySnapshotLink() {
+  const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+  const url = window.location.origin + window.location.pathname + "#data=" + encoded;
+  navigator.clipboard.writeText(url).then(() => { closeModal("share-modal"); showToast("Snapshot link copied!"); });
+}
+
+function exportBackupJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `pesoflow-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  closeModal("backup-modal");
+  showToast("Backup .json downloaded!");
+}
+
+function importBackupJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      state = { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...parsed };
+      saveState(); render(); closeModal("backup-modal");
+      showToast("Backup restored!");
+    } catch (err) {
+      alert("Invalid backup file.");
     }
+  };
+  reader.readAsText(file);
+}
 
-    function syncWalletInputsToMemory() {
-      document.querySelectorAll('.wallet-inp').forEach(el => {
-        const id = el.getAttribute('data-wid');
-        const field = el.getAttribute('data-field');
-        const w = state.wallets.find(x => x.id === id);
-        if (w) w[field] = el.value;
-      });
-    }
+function copyNotesSummary() {
+  let txt = `PESOFLOW BUDGET BACKUP
+Earned: ${fmt(state.earned)}
+Split: ${state.pctSav}/${state.pctNeed}/${state.pctWant}
 
-    function addWalletSlot() {
-      syncWalletInputsToMemory();
-      state.wallets.push({
-        id: 'w_' + Date.now(),
-        name: 'New Wallet / Cash',
-        roleLabel: 'Extra Stash',
-        routeType: 'CUSTOM',
-        color: 'purple',
-        note: 'Custom reserve'
-      });
-      renderWalletEditorForm();
-    }
+DAILY LOGS:
+`;
+  state.logs.forEach(l => { txt += `${l.date}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs} | Wants: ₱${l.wants}
+`; });
+  txt += `
+BILLS & LOANS:
+`;
+  state.bills.forEach(b => { txt += `${b.name}: ₱${b.monthly}/mo (Paid: ₱${b.paidThisMonth}) [${b.status}]
+`; });
+  navigator.clipboard.writeText(txt).then(() => { closeModal("backup-modal"); showToast("Summary copied to clipboard!"); });
+}
 
-    function removeWalletSlot(id) {
-      syncWalletInputsToMemory();
-      state.wallets = state.wallets.filter(w => w.id !== id);
-      renderWalletEditorForm();
-    }
+function archiveAndStartNewMonth() {
+  if (!confirm("Start a new month cycle? Current active monthly bills reset to ₱0 paid (keeping Paid-Off Forever loans removed), and your historical logs stay safely searchable by Month/Year.")) return;
+  state.earned = 0;
+  state.bills.forEach(b => { if (b.status === "active") b.paidThisMonth = 0; });
+  closeModal("backup-modal");
+  saveState(); render();
+  showToast("New month cycle started!");
+}
 
-    function saveWalletsForm(e) {
-      e.preventDefault();
-      syncWalletInputsToMemory();
-      saveState();
-      renderAll();
-      closeEditModal();
-      showToast('Updated Smart Wallet Router!');
-    }
+function resetAllBlank() {
+  if (!confirm("Reset everything back to ₱0.00?")) return;
+  state = JSON.parse(JSON.stringify(BLANK_STATE));
+  closeModal("backup-modal");
+  saveState(); render();
+  showToast("All data cleared!");
+}
 
-    // =========================================================================
-    // 5. INLINE EDITING, PERCENTAGES & AUTOMATION HANDLERS
-    // =========================================================================
-    function handlePctInput() {
-      const s = parseFloat(document.getElementById('pctSavingsInput').value) || 0;
-      const n = parseFloat(document.getElementById('pctNeedsInput').value) || 0;
-      const w = parseFloat(document.getElementById('pctWantsInput').value) || 0;
-      const sum = Math.round((s + n + w) * 100) / 100;
-
-      const badge = document.getElementById('pctTotalBadge');
-      const warn = document.getElementById('pctWarningMsg');
-      badge.textContent = `Total: ${sum}%`;
-
-      if (Math.abs(sum - 100) < 0.01) {
-        badge.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums';
-        warn.classList.add('hidden');
-        state.settings.pctSavings = s;
-        state.settings.pctNeeds = n;
-        state.settings.pctWants = w;
-        saveState();
-        renderAll();
-      } else {
-        badge.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/15 text-rose-500 tabular-nums';
-        warn.classList.remove('hidden');
-      }
-    }
-
-    function applyPreset(s, n, w) {
-      state.settings.pctSavings = s;
-      state.settings.pctNeeds = n;
-      state.settings.pctWants = w;
-      document.getElementById('pctWarningMsg').classList.add('hidden');
-      document.getElementById('pctTotalBadge').textContent = 'Total: 100%';
-      document.getElementById('pctTotalBadge').className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums';
-      saveState();
-      renderAll();
-      showToast(`Applied ${s}/${n}/${w} budget split!`);
-    }
-
-    function openEditExpenseModal(id) {
-      const exp = state.expenses.find(e => e.id === id);
-      if (!exp) return;
-
-      document.getElementById('editModalTitle').textContent = `Edit Entry (${exp.date})`;
-      document.getElementById('editModalBody').innerHTML = `
-        <form onsubmit="saveEditedExpense(event, '${exp.id}')" class="space-y-3">
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Date</label>
-              <input type="text" id="editExpDate" value="${escapeHtml(exp.date)}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm" />
-            </div>
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Day Type</label>
-              <select id="editExpType" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm">
-                <option value="WORK" ${exp.dayType === 'WORK' ? 'selected' : ''}>Workday (+Allowance)</option>
-                <option value="NW" ${exp.dayType === 'NW' ? 'selected' : ''}>Rest / Off Day (₱0 Cap)</option>
-              </select>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Needs (₱)</label>
-              <input type="number" step="0.01" min="0" id="editExpNeeds" value="${exp.needs}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums" />
-            </div>
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Wants (₱)</label>
-              <input type="number" step="0.01" min="0" id="editExpWants" value="${exp.wants}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums" />
-            </div>
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Note</label>
-            <input type="text" id="editExpNote" value="${escapeHtml(exp.note || '')}" placeholder="e.g., Lunch, commute" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm" />
-          </div>
-          <div class="flex gap-2 pt-2">
-            <button type="button" onclick="closeEditModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Cancel</button>
-            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Save Changes</button>
-          </div>
-        </form>
-      `;
-      const modal = document.getElementById('editModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function saveEditedExpense(e, id) {
-      e.preventDefault();
-      const exp = state.expenses.find(x => x.id === id);
-      if (!exp) return;
-      exp.date = document.getElementById('editExpDate').value.trim();
-      exp.dayType = document.getElementById('editExpType').value;
-      exp.needs = parseFloat(document.getElementById('editExpNeeds').value) || 0;
-      exp.wants = parseFloat(document.getElementById('editExpWants').value) || 0;
-      exp.note = document.getElementById('editExpNote').value.trim();
-      saveState();
-      renderAll();
-      closeEditModal();
-      showToast('Updated daily entry');
-    }
-
-    function openEditObligationModal(id) {
-      const ob = state.obligations.find(o => o.id === id);
-      if (!ob) return;
-
-      document.getElementById('editModalTitle').textContent = `Edit ${ob.type === 'LOAN' ? 'Loan' : 'Bill'}`;
-      document.getElementById('editModalBody').innerHTML = `
-        <form onsubmit="saveEditedObligation(event, '${ob.id}')" class="space-y-3">
-          <div>
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Description</label>
-            <input type="text" id="editObName" value="${escapeHtml(ob.name)}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm" />
-          </div>
-          <div class="grid grid-cols-2 gap-2.5">
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Monthly Rate (₱)</label>
-              <input type="number" step="0.01" min="0" id="editObMonthly" value="${ob.monthlyAmount}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums" />
-            </div>
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Paid This Month (₱)</label>
-              <input type="number" step="0.01" min="0" id="editObPaidAmt" value="${ob.amountPaidThisMonth}" required class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm tabular-nums" />
-            </div>
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">Status</label>
-            <select id="editObStatus" class="w-full rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-surface-borderLight dark:border-surface-borderDark px-3 py-2 text-sm">
-              <option value="unpaid" ${!ob.paidThisMonth && !ob.fullyPaidForever ? 'selected' : ''}>Active — Unpaid This Month</option>
-              <option value="paid_mo" ${ob.paidThisMonth && !ob.fullyPaidForever ? 'selected' : ''}>Active — Paid This Month</option>
-              <option value="forever" ${ob.fullyPaidForever ? 'selected' : ''}>Paid Off Forever (Remove from Monthly Bills)</option>
-            </select>
-          </div>
-          <div class="flex gap-2 pt-2">
-            <button type="button" onclick="closeEditModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold">Cancel</button>
-            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold">Save Changes</button>
-          </div>
-        </form>
-      `;
-      const modal = document.getElementById('editModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function saveEditedObligation(e, id) {
-      e.preventDefault();
-      const ob = state.obligations.find(o => o.id === id);
-      if (!ob) return;
-      ob.name = document.getElementById('editObName').value.trim();
-      ob.monthlyAmount = parseFloat(document.getElementById('editObMonthly').value) || 0;
-      ob.amountPaidThisMonth = parseFloat(document.getElementById('editObPaidAmt').value) || 0;
-      const status = document.getElementById('editObStatus').value;
-
-      if (status === 'forever') {
-        ob.fullyPaidForever = true;
-        ob.paidThisMonth = true;
-      } else if (status === 'paid_mo') {
-        ob.fullyPaidForever = false;
-        ob.paidThisMonth = true;
-        if (ob.amountPaidThisMonth === 0) ob.amountPaidThisMonth = ob.monthlyAmount;
-      } else {
-        ob.fullyPaidForever = false;
-        ob.paidThisMonth = false;
-        ob.amountPaidThisMonth = 0;
-      }
-
-      saveState();
-      renderAll();
-      closeEditModal();
-      showToast('Updated item & recalculated allowances');
-    }
-
-    function closeEditModal() {
-      const modal = document.getElementById('editModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function handleAddExpense(e) {
-      e.preventDefault();
-      const date = document.getElementById('expDate').value.trim();
-      const dayType = document.getElementById('expDayType').value;
-      const needs = parseFloat(document.getElementById('expNeeds').value) || 0;
-      const wants = parseFloat(document.getElementById('expWants').value) || 0;
-      const note = document.getElementById('expNote').value.trim();
-
-      state.expenses.push({
-        id: 'exp_' + Date.now(),
-        date,
-        dayType,
-        needs,
-        wants,
-        note
-      });
-
-      document.getElementById('expNeeds').value = '';
-      document.getElementById('expWants').value = '';
-      document.getElementById('expNote').value = '';
-
-      saveState();
-      renderAll();
-      showToast(`Logged ${date} (${dayType === 'WORK' ? 'Workday' : 'Off Day'})`);
-    }
-
-    function deleteExpense(id) {
-      state.expenses = state.expenses.filter(e => e.id !== id);
-      saveState();
-      renderAll();
-      showToast('Entry removed');
-    }
-
-    function togglePaidThisMonth(id) {
-      const ob = state.obligations.find(o => o.id === id);
-      if (!ob) return;
-      ob.paidThisMonth = !ob.paidThisMonth;
-      if (ob.paidThisMonth) {
-        ob.amountPaidThisMonth = ob.fullyPaidForever ? ob.amountPaidThisMonth || ob.monthlyAmount : ob.monthlyAmount;
-      } else {
-        ob.amountPaidThisMonth = 0;
-        ob.fullyPaidForever = false;
-      }
-      saveState();
-      renderAll();
-      showToast(ob.paidThisMonth ? `Marked "${ob.name}" paid` : `Marked "${ob.name}" unpaid`);
-    }
-
-    function toggleFullyPaidForever(id) {
-      const ob = state.obligations.find(o => o.id === id);
-      if (!ob) return;
-      ob.fullyPaidForever = !ob.fullyPaidForever;
-      if (ob.fullyPaidForever) {
-        ob.paidThisMonth = true;
-        if (!ob.amountPaidThisMonth || ob.amountPaidThisMonth === 0) {
-          ob.amountPaidThisMonth = ob.monthlyAmount;
-        }
-        showToast(`🎉 Loan paid off! Daily allowances automatically increased.`);
-      } else {
-        showToast(`Restored "${ob.name}" to monthly recurring bills`);
-      }
-      saveState();
-      renderAll();
-    }
-
-    function handleAddObligation(e) {
-      e.preventDefault();
-      const name = document.getElementById('newObName').value.trim();
-      const monthlyAmount = parseFloat(document.getElementById('newObMonthly').value) || 0;
-      const type = document.getElementById('newObType').value;
-
-      state.obligations.push({
-        id: 'ob_' + Date.now(),
-        name,
-        type,
-        monthlyAmount,
-        paidThisMonth: false,
-        amountPaidThisMonth: 0,
-        fullyPaidForever: false
-      });
-
-      document.getElementById('newObName').value = '';
-      document.getElementById('newObMonthly').value = '';
-
-      saveState();
-      renderAll();
-      showToast(`Added "${name}" & recalculated budget`);
-    }
-
-    function deleteObligation(id) {
-      state.obligations = state.obligations.filter(o => o.id !== id);
-      saveState();
-      renderAll();
-      showToast('Item removed & budget updated');
-    }
-
-    function updateBaseSettings() {
-      const wage = parseFloat(document.getElementById('baseDailyWageInput').value) || 700;
-      const days = parseInt(document.getElementById('workdaysPerMonthInput').value, 10) || 20;
-      const goal = parseFloat(document.getElementById('customGoalTargetInput').value) || 0;
-      state.settings.baseDailyWage = wage;
-      state.settings.workdaysPerMonth = days;
-      state.settings.customGoalTarget = goal;
-      saveState();
-      renderAll();
-      showToast('Updated wage & savings goal');
-    }
-
-    function quickAddDailyPay() {
-      const rate = state.settings.baseDailyWage || 700;
-      const nextNum = state.payouts.length + 1;
-      state.payouts.push({
-        id: 'pay_' + Date.now(),
-        label: `Workday Pay #${nextNum}`,
-        amount: rate
-      });
-      saveState();
-      renderAll();
-      showToast(`Added +${formatPHP(rate)} income!`);
-    }
-
-    function handleAddPayout(e) {
-      e.preventDefault();
-      const label = document.getElementById('payoutLabel').value.trim();
-      const amount = parseFloat(document.getElementById('payoutAmount').value) || 0;
-      state.payouts.push({
-        id: 'pay_' + Date.now(),
-        label,
-        amount
-      });
-      document.getElementById('payoutLabel').value = '';
-      document.getElementById('payoutAmount').value = '';
-      saveState();
-      renderAll();
-      showToast(`Logged income: ${formatPHP(amount)}`);
-    }
-
-    function deletePayout(id) {
-      state.payouts = state.payouts.filter(p => p.id !== id);
-      saveState();
-      renderAll();
-      showToast('Income entry removed');
-    }
-
-    // =========================================================================
-    // 6. SHARING, CYCLE RESET, THEME & BACKUP
-    // =========================================================================
-    function openShareModal() {
-      const modal = document.getElementById('shareModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeShareModal() {
-      const modal = document.getElementById('shareModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function copyShareLink(mode) {
-      const baseUrl = window.location.href.split('#')[0];
-      let shareUrl = baseUrl;
-
-      if (mode === 'snapshot') {
-        const jsonStr = JSON.stringify(state);
-        const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
-        shareUrl = `${baseUrl}#data=${encodeURIComponent(b64)}`;
-      }
-
-      const helper = document.getElementById('clipboardHelper');
-      helper.value = shareUrl;
-      helper.select();
-      document.execCommand('copy');
-      closeShareModal();
-      showToast(mode === 'template' ? 'Copied Clean App Link!' : 'Copied Snapshot Link!');
-    }
-
-    function confirmNewMonthCycle() {
-      const btn = document.getElementById('newMonthBtn');
-      if (!newMonthConfirmStep) {
-        newMonthConfirmStep = true;
-        btn.textContent = 'Tap Again to Confirm New Month Reset';
-        return;
-      }
-      state.payouts = [];
-      state.expenses = [];
-      state.obligations = state.obligations.map(ob => {
-        if (ob.fullyPaidForever) return ob;
-        return Object.assign({}, ob, { paidThisMonth: false, amountPaidThisMonth: 0 });
-      });
-      saveState();
-      renderAll();
-      closeBackupModal();
-      showToast('Started fresh month! Paid-off loans kept removed.');
-    }
-
-    function loadDemoTemplate() {
-      state = JSON.parse(JSON.stringify(SAMPLE_DEMO_STATE));
-      saveState();
-      renderAll();
-      closeBackupModal();
-      showToast('Loaded sample budget & loan data');
-    }
-
-    function switchTab(tabName) {
-      ['tracker', 'loans', 'allocator'].forEach(t => {
-        document.getElementById(`tab-${t}`).classList.add('hidden');
-        const btn = document.getElementById(`tabBtn-${t}`);
-        btn.className = 'tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
-      });
-      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tabBtn-${tabName}`);
-      activeBtn.className = 'tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all bg-white dark:bg-surface-cardDark text-slate-900 dark:text-white shadow-sm';
-    }
-
-    function toggleTheme() {
-      state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
-      saveState();
-      renderAll();
-    }
-
-    function openBackupModal() {
-      resetConfirmStep = false;
-      newMonthConfirmStep = false;
-      document.getElementById('resetDefaultBtn').textContent = 'Clear All (Blank)';
-      document.getElementById('newMonthBtn').textContent = '🗓 Start New Month Cycle (Keep Paid-Off Loans)';
-      const modal = document.getElementById('backupModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeBackupModal() {
-      const modal = document.getElementById('backupModal');
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function copyIphoneNotesSummary() {
-      const m = calculateMetrics();
-      const lines = [
-        `PESOFLOW BUDGET SUMMARY (${state.settings.pctSavings}/${state.settings.pctNeeds}/${state.settings.pctWants})`,
-        `Total Income: ${formatPHP(m.totalSalaryEarned)} (${m.loggedWorkdays} Workdays)`,
-        `Cash On Hand: ${formatPHP(m.actualCashLeft)}`,
-        `Net After Unpaid Bills: ${formatPHP(m.pureNetAfterRemainingBills)}`,
-        `---`,
-        `DAILY TARGETS (Active Bills: ${formatPHP(m.activeMonthlyBills)}/mo)`,
-        `${state.settings.pctSavings}% Savings: ${formatPHP(m.dailySavingsRate)}/day`,
-        `${state.settings.pctNeeds}% Needs: ${formatPHP(m.dailyNeedsRate)}/day (Spent: ${formatPHP(m.totalNeedsSpent)})`,
-        `${state.settings.pctWants}% Wants: ${formatPHP(m.dailyWantsRate)}/day (Spent: ${formatPHP(m.totalWantsSpent)})`,
-        `Rollover Balance: ${formatSignedPHP(m.netDailyRollover)}`
-      ].join('\n');
-
-      const helper = document.getElementById('clipboardHelper');
-      helper.value = lines;
-      helper.select();
-      document.execCommand('copy');
-      closeBackupModal();
-      showToast('Copied summary for Apple Notes!');
-    }
-
-    function exportDataJSON() {
-      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `pesoflow-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Downloaded JSON backup');
-    }
-
-    function importDataJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (parsed && parsed.settings && parsed.expenses && parsed.obligations) {
-            parsed.wallets = parsed.wallets || JSON.parse(JSON.stringify(CLEAN_STARTER_STATE.wallets));
-            state = parsed;
-            saveState();
-            renderAll();
-            closeBackupModal();
-            showToast('Backup restored successfully!');
-          } else {
-            showToast('Invalid backup file format');
-          }
-        } catch (err) {
-          showToast('Could not read JSON file');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function confirmResetDefaults() {
-      const btn = document.getElementById('resetDefaultBtn');
-      if (!resetConfirmStep) {
-        resetConfirmStep = true;
-        btn.textContent = 'Tap Again to Clear All';
-        return;
-      }
-      state = JSON.parse(JSON.stringify(CLEAN_STARTER_STATE));
-      saveState();
-      renderAll();
-      closeBackupModal();
-      showToast('Cleared all data to blank starter');
-    }
-
-    let toastTimer = null;
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      document.getElementById('toastText').textContent = msg;
-      toast.classList.remove('opacity-0', '-translate-y-2');
-      toast.classList.add('opacity-100', 'translate-y-0');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        toast.classList.remove('opacity-100', 'translate-y-0');
-        toast.classList.add('opacity-0', '-translate-y-2');
-      }, 2800);
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
-
-    // Initialize date input to today's MM/DD/YY and render
-    window.addEventListener('DOMContentLoaded', () => {
-      const now = new Date();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const yy = String(now.getFullYear()).slice(-2);
-      const dateInput = document.getElementById('expDate');
-      if (dateInput && !dateInput.value) {
-        dateInput.value = `${mm}/${dd}/${yy}`;
-      }
-      renderAll();
-    });
-  </script>
+render();
+</script>
 </body>
 </html>
