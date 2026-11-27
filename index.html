@@ -768,7 +768,7 @@ function checkStorageHealth() {
       statusEl.textContent = "⚠ In-App Browser — Tap ••• and Open in Safari so data saves!";
       statusEl.className = "amber";
     } else {
-      statusEl.textContent = "● Auto-saved on this device";
+      statusEl.textContent = "● Auto-saved & Offline Ready";
       statusEl.className = "green";
     }
     return true;
@@ -787,7 +787,6 @@ function loadInitialState() {
     try {
       const decoded = JSON.parse(decodeURIComponent(atob(hash.slice(6))));
       const merged = { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...decoded };
-      // CRITICAL FIX: Persist imported snapshot to localStorage BEFORE cleaning the URL hash!
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       } catch (err) {}
@@ -1401,6 +1400,12 @@ function resetAllBlank() {
   closeModal("backup-modal");
   saveState(); render();
   showToast("All data cleared!");
+}
+
+if ("serviceWorker" in navigator && window.location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
 }
 
 checkStorageHealth();
