@@ -288,7 +288,18 @@
   .today-box strong { display:block; font-size:20px; }
   .fab { position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:40; border:0; border-radius:999px; padding:14px 20px; font-weight:700; font-size:14px; background:#2563eb; color:#fff; box-shadow:0 6px 18px rgba(0,0,0,.45); }
   body { padding-bottom:90px !important; }
+  .tabs { display:grid !important; grid-template-columns:repeat(5,minmax(0,1fr)) !important; gap:2px !important; }
+  .tabs .tab { padding-left:0 !important; padding-right:0 !important; font-size:12px !important; white-space:nowrap; }
   .day-row { cursor:pointer; }
+  .goal { padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .goal-top { display:flex; justify-content:space-between; gap:8px; font-size:14px; }
+  .goal-bar { height:8px; border-radius:9px; background:var(--card-2); margin:7px 0; overflow:hidden; }
+  .goal-bar div { height:100%; background:var(--green); }
+  .goal-add { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin:10px 0 6px; }
+  .goal-add .btn-primary { width:auto; }
+  .suggest { display:block; width:100%; text-align:left; margin-top:5px; padding:8px 10px; border-radius:9px; border:1px solid rgba(255,255,255,0.1); background:var(--card-2); color:inherit; font:inherit; font-size:12px; cursor:pointer; }
+  .suggest span { display:block; color:var(--muted); margin-top:2px; }
+  .goal-actions { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
   .toast {
     position: fixed;
     bottom: 20px;
@@ -330,8 +341,9 @@
 <div class="tabs">
   <button class="tab active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab" id="tab-daily" onclick="switchTab('daily')">Daily Log</button>
-  <button class="tab" id="tab-loans" onclick="switchTab('loans')">Loans & Bills</button>
-  <button class="tab" id="tab-settings" onclick="switchTab('settings')">Edit Splits</button>
+  <button class="tab" id="tab-goals" onclick="switchTab('goals')">Goals</button>
+  <button class="tab" id="tab-loans" onclick="switchTab('loans')">Bills</button>
+  <button class="tab" id="tab-settings" onclick="switchTab('settings')">Settings</button>
 </div>
 
 <!-- OVERVIEW TAB -->
@@ -527,6 +539,25 @@
   </div>
 </section>
 
+<!-- GOALS TAB -->
+<section id="view-goals" class="hidden">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">My Goals</div>
+      <span class="sub" id="goals-total-badge"></span>
+    </div>
+    <div id="goals-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">New Goal</div>
+    <div class="form-grid" style="margin-top:8px;">
+      <div><label>Name</label><input type="text" id="goal-name" placeholder="e.g. New shirt" /></div>
+      <div><label>Price (₱)</label><input type="number" step="0.01" inputmode="decimal" id="goal-target" placeholder="0.00" /></div>
+    </div>
+    <button class="btn-primary" onclick="addGoal()">+ Add Goal</button>
+  </div>
+</section>
+
 <!-- LOANS & BILLS TAB -->
 <section id="view-loans" class="hidden">
   <div class="card">
@@ -657,6 +688,23 @@
     <div id="income-history-list"></div>
     <div class="card-title" style="margin-top:14px;">Bill Payments</div>
     <div id="payment-history-list"></div>
+  </div>
+</div>
+
+<!-- EDIT MONEY MODAL -->
+<div class="modal-backdrop hidden" id="edit-income-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;">Edit Money Entry</h3>
+      <button class="btn-icon" onclick="closeEditIncome()">✕</button>
+    </div>
+    <input type="hidden" id="edit-income-id" />
+    <div class="form-grid">
+      <div><label>Amount (₱)</label><input type="number" step="0.01" inputmode="decimal" id="edit-income-amt" /></div>
+      <div><label>Date</label><input type="date" id="edit-income-date" /></div>
+    </div>
+    <div style="margin-bottom:12px;"><label>Note</label><input type="text" id="edit-income-note" /></div>
+    <button class="btn-primary" onclick="saveEditIncome()">Save Changes</button>
   </div>
 </div>
 
@@ -805,6 +853,7 @@ const BLANK_STATE = {
   logs: [],
   incomeLogs: [],
   payments: [],
+  goals: [],
   cycle: 1,
   archivedMonths: []
 };
@@ -924,11 +973,17 @@ function normalizeState(input) {
       date: toISO(p.date), cycle: Math.max(1, Math.round(num(p.cycle, 1))), full: p.full === true
     }));
   }
+  out.goals = list(d.goals).map(g => ({
+    id: id(g.id), name: txt(g.name), target: pos(g.target),
+    adds: list(g.adds).map(a => ({ id: id(a.id), date: toISO(a.date), amount: pos(a.amount), from: pick(a.from, ["savings", "needs", "wants"], "savings") })),
+    bought: g.bought && typeof g.bought === "object" ? { amount: pos(g.bought.amount), date: toISO(g.bought.date) } : null
+  }));
   const fallbackCap = currentCap(out);
   out.logs = list(d.logs).map(l => ({
     id: id(l.id), date: toISO(l.date), type: l.type === "off" ? "off" : "work",
     needs: num(l.needs), wants: num(l.wants), note: txt(l.note),
-    cap: l.type === "off" ? 0 : pos(l.cap, fallbackCap)
+    cap: l.type === "off" ? 0 : pos(l.cap, fallbackCap),
+    auto: l.auto === true
   }));
   out.earned = out.incomeLogs.reduce((t, x) => t + x.amount, 0);
   return out;
@@ -938,7 +993,8 @@ function totals() {
   const spent = state.logs.reduce((t, l) => t + l.needs + l.wants, 0);
   const paid = state.payments.reduce((t, p) => t + p.amount, 0);
   state.earned = state.incomeLogs.reduce((t, x) => t + x.amount, 0);
-  return { spent, paid, cash: state.earned - spent - paid };
+  const bought = state.goals.reduce((t, g) => t + (g.bought ? g.bought.amount : 0), 0);
+  return { spent, paid, cash: state.earned - spent - paid - bought };
 }
 
 function paidThisCycle(billId) {
@@ -1019,7 +1075,7 @@ function showToast(msg) {
 
 function switchTab(name) {
   document.getElementById("fab-expense").classList.toggle("hidden", name === "daily");
-  ["overview", "daily", "loans", "settings"].forEach(t => {
+  ["overview", "daily", "goals", "loans", "settings"].forEach(t => {
     document.getElementById("view-" + t).classList.toggle("hidden", t !== name);
     document.getElementById("tab-" + t).classList.toggle("active", t === name);
   });
@@ -1077,7 +1133,7 @@ function render() {
     allNeeds += day.needs;
     allWants += day.wants;
     if (day.type === "work") allWorkCount++;
-    earnedCap += day.cap;
+    earnedCap += day.cap - day.goal;
   });
 
   const totDailySpent = allNeeds + allWants;
@@ -1087,14 +1143,16 @@ function render() {
   const unpaidThisMonth = activeBills.reduce((s, b) => s + Math.max(0, b.monthly - paidThisCycle(b.id)), 0);
 
   const cashLeft = totals().cash;
-  const pureNet = cashLeft - unpaidThisMonth;
+  const reserved = goalsReserved();
+  const pureNet = cashLeft - unpaidThisMonth - reserved;
 
+  const history = historyDays(days);
   const monthSelect = document.getElementById("filter-month");
   const prevMonthVal = monthSelect.value;
   const monthSet = new Set();
-  days.forEach(l => monthSet.add(getMonthKey(l.date)));
+  history.forEach(l => monthSet.add(getMonthKey(l.date)));
   const sortedMonths = Array.from(monthSet).sort().reverse();
-  monthSelect.innerHTML = `<option value="all">All Months (${days.length})</option>` +
+  monthSelect.innerHTML = `<option value="all">All Months (${history.length})</option>` +
     sortedMonths.map(m => `<option value="${m}">${formatMonthLabel(m)}</option>`).join("");
   if (sortedMonths.includes(prevMonthVal) || prevMonthVal === "all") {
     monthSelect.value = prevMonthVal;
@@ -1105,14 +1163,14 @@ function render() {
   const sortMode = document.getElementById("sort-logs").value;
   const searchQ = document.getElementById("search-logs").value.trim().toLowerCase();
 
-  let filteredLogs = days.filter(item => {
+  let filteredLogs = history.filter(item => {
     if (fMonth !== "all" && getMonthKey(item.date) !== fMonth) return false;
     if (fType === "work" && item.type !== "work") return false;
     if (fType === "off" && item.type !== "off") return false;
     const cap = item.cap;
     const spent = Number(item.needs) + Number(item.wants);
-    if (fType === "over" && spent <= cap) return false;
-    if (searchQ && !(`${showDate(item.date)} ${item.date} ${item.items.map(x => x.note).join(" ")}`.toLowerCase().includes(searchQ))) return false;
+    if (fType === "over" && (item.type === "none" || spent + item.goal <= cap)) return false;
+    if (searchQ && !(`${showDate(item.date)} ${item.date} ${item.items.map(x => x.note).join(" ")} ${item.events.map(x => `goal ${x.name} ${x.text}`).join(" ")}`.toLowerCase().includes(searchQ))) return false;
     return true;
   });
 
@@ -1130,7 +1188,7 @@ function render() {
   filteredLogs.forEach(item => {
     filtNeeds += Number(item.needs);
     filtWants += Number(item.wants);
-    filtCap += item.cap;
+    filtCap += item.cap - item.goal;
   });
   const filtRollover = filtCap - (filtNeeds + filtWants);
 
@@ -1144,8 +1202,14 @@ function render() {
   tbody.innerHTML = "";
   pageItems.forEach(item => {
     const open = openDays.has(item.date);
+    const entries = item.items.filter(x => !(x.auto && !x.needs && !x.wants));
+    const setAside = item.events.reduce((t, x) => t + x.amount, 0);
+    const info = [];
+    if (entries.length) info.push(`${entries.length} ${entries.length === 1 ? "entry" : "entries"}`);
+    if (setAside) info.push(`🎯 ${fmt(setAside)} to goals`);
+    if (item.events.some(x => !x.addId)) info.push("🎯 Goal bought");
     const cap = item.cap;
-    const diff = cap - (Number(item.needs) + Number(item.wants));
+    const diff = cap - item.goal - (Number(item.needs) + Number(item.wants));
     const tr = document.createElement("tr");
     tr.className = "day-row";
     tr.onclick = () => toggleDay(item.date);
@@ -1153,15 +1217,22 @@ function render() {
       <td>
         <strong>${open ? "▾" : "▸"} ${esc(showDate(item.date))}</strong>
         ${item.type === "off" ? '<span class="pill pill-amber">Off</span>' : ''}
-        <div class="sub">${item.items.length} ${item.items.length === 1 ? "entry" : "entries"}</div>
+        <div class="sub">${info.join(" • ") || "No spending"}</div>
       </td>
       <td class="num">${fmt(item.needs)}</td>
       <td class="num">${fmt(item.wants)}</td>
-      <td class="num ${diff >= 0 ? 'green' : 'red'}">${diff >= 0 ? '+' : ''}${fmt(diff)}</td>
+      <td class="num ${item.type === "none" ? "" : diff >= 0 ? 'green' : 'red'}">${item.type === "none" ? "—" : (diff >= 0 ? '+' : '') + fmt(diff)}</td>
     `;
     tbody.appendChild(tr);
     if (!open) return;
-    item.items.slice().sort((a, b) => b.id - a.id).forEach(x => {
+    item.events.slice().sort((a, b) => b.id - a.id).forEach(x => {
+      const sub = document.createElement("tr");
+      sub.innerHTML = `
+        <td colspan="3" style="padding-left:22px;">🎯 ${esc(x.name)}<div class="sub">${x.text}</div></td>
+        <td class="num">${x.addId ? `<button class="btn-icon" onclick="delGoalAdd(${x.goalId}, ${x.addId})">×</button>` : ""}</td>`;
+      tbody.appendChild(sub);
+    });
+    entries.slice().sort((a, b) => b.id - a.id).forEach(x => {
       const parts = [];
       if (x.needs) parts.push(`Need ${fmt(x.needs)}`);
       if (x.wants) parts.push(`Want ${fmt(x.wants)}`);
@@ -1201,7 +1272,7 @@ function render() {
     : `${allWorkCount} workdays logged`;
   document.getElementById("ov-cash-left").textContent = fmt(cashLeft);
   document.getElementById("ov-cash-left").className = "metric-val " + (cashLeft >= 0 ? "green" : "red");
-  document.getElementById("ov-pure-net").textContent = `${fmt(pureNet)} after ${fmt(unpaidThisMonth)} unpaid bills`;
+  document.getElementById("ov-pure-net").textContent = `${fmt(pureNet)} free after bills${reserved ? " & goals" : ""}`;
   document.getElementById("ov-daily-spent").textContent = fmt(totDailySpent);
   document.getElementById("ov-rollover").textContent = `${netRollover >= 0 ? '+' : ''}${fmt(netRollover)} vs saved daily caps`;
   document.getElementById("ov-rollover").className = "metric-sub " + (netRollover >= 0 ? "green" : "red");
@@ -1231,13 +1302,15 @@ function render() {
 
   const today = days.find(d => d.date === todayISO());
   const todaySpent = today ? today.needs + today.wants : 0;
-  const todayLeft = (today ? today.cap : dailySpendCap) - todaySpent;
+  const todayLeft = (today ? today.cap - today.goal : dailySpendCap) - todaySpent;
   document.getElementById("today-spent").textContent = fmt(todaySpent);
   document.getElementById("today-left-label").textContent = todayLeft >= 0 ? "Left today" : "Over today";
   document.getElementById("today-left").textContent = fmt(Math.abs(todayLeft));
   document.getElementById("today-left").className = todayLeft >= 0 ? "green" : "red";
   document.getElementById("daily-cap-badge").textContent = `Today's cap: ${fmt(today ? today.cap : dailySpendCap)}`;
   syncLogForm();
+
+  renderGoals();
 
   const walletContainer = document.getElementById("wallet-cards");
   walletContainer.innerHTML = "";
@@ -1252,7 +1325,7 @@ function render() {
     if (w.rule === "hub_net_savings") {
       kind = "All remaining cash";
       mainVal = fmt(Math.max(0, cashLeft));
-      subText = `Net savings ${fmt(Math.max(0, pureNet))} + Unpaid bills ${fmt(unpaidThisMonth)}`;
+      subText = "";
     } else if (w.rule === "goal_reserve") {
       kind = "Monthly target";
       const target = Number(w.customTarget || 0);
@@ -1337,6 +1410,7 @@ function render() {
   const warnings = [];
   if (loadError) warnings.push("Your saved data couldn't be safely loaded or backed up, so saving is OFF to protect it. Download the safety copy in Backup, if available.");
   if (Math.abs(pctSum - 100) >= 0.001) warnings.push(`Your splits total ${pctSum}%, not 100%. Fix them in Edit Splits.`);
+  if (goalsReserved() > 0 && totals().cash - state.bills.filter(b => b.status === "active").reduce((t, b) => t + Math.max(0, b.monthly - paidThisCycle(b.id)), 0) - goalsReserved() < 0) warnings.push("Your cash doesn't cover both unpaid bills and goal money.");
   if (activeMonthlyBills > monthlyIncome) warnings.push(`Bills exceed monthly work pay by ${fmt(activeMonthlyBills - monthlyIncome)}, so allowances are ₱0.`);
   const warnEl = document.getElementById("warning-box");
   warnEl.innerHTML = warnings.map(w => `<div>⚠ ${esc(w)}</div>`).join("");
@@ -1395,6 +1469,8 @@ function renderIncomeHistory() {
   state.incomeLogs.forEach(item => {
     const row = document.createElement("div");
     row.className = "row";
+    row.style.flexWrap = "wrap";
+    row.style.gap = "6px";
     row.innerHTML = `
       <div>
         <strong>${esc(item.note)}</strong>
@@ -1402,7 +1478,8 @@ function renderIncomeHistory() {
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <strong class="${item.amount < 0 ? 'red' : 'green'}">${item.amount < 0 ? "−" : "+"}${fmt(Math.abs(item.amount))}</strong>
-        <button class="btn-icon" style="color:var(--red);" onclick="delIncomeLog(${item.id})">×</button>
+        <button class="btn-sm" onclick="openEditIncome(${item.id})">Edit</button>
+        <button class="btn-sm" style="color:var(--red);" onclick="delIncomeLog(${item.id})">Delete</button>
       </div>
     `;
     list.appendChild(row);
@@ -1432,6 +1509,38 @@ function delPayment(id) {
   const bill = state.bills.find(b => b.id === p.billId);
   if (p.full && bill) bill.status = "active";
   saveState(); render(); renderIncomeHistory();
+}
+
+function openEditIncome(id) {
+  const item = state.incomeLogs.find(x => x.id === id);
+  if (!item) return;
+  document.getElementById("edit-income-id").value = item.id;
+  document.getElementById("edit-income-amt").value = item.amount;
+  document.getElementById("edit-income-date").value = item.date;
+  document.getElementById("edit-income-note").value = item.note;
+  closeModal("income-history-modal");
+  document.getElementById("edit-income-modal").classList.remove("hidden");
+}
+
+function closeEditIncome() {
+  closeModal("edit-income-modal");
+  openIncomeHistoryModal();
+}
+
+function saveEditIncome() {
+  const id = Number(document.getElementById("edit-income-id").value);
+  const item = state.incomeLogs.find(x => x.id === id);
+  if (!item) return;
+  const amount = Number(document.getElementById("edit-income-amt").value);
+  // Only entries that were already negative (corrections) can stay negative.
+  if (!Number.isFinite(amount) || amount === 0 || (item.amount > 0 && amount < 0)) { showToast("Enter a valid amount"); return; }
+  if (amount !== item.amount && !confirm(`Change ${fmt(item.amount)} to ${fmt(amount)}? Your cash will be recalculated.`)) return;
+  item.amount = amount;
+  item.date = document.getElementById("edit-income-date").value || item.date;
+  item.note = document.getElementById("edit-income-note").value.trim() || item.note;
+  saveState(); render();
+  closeEditIncome();
+  showToast("Entry updated");
 }
 
 function delIncomeLog(id) {
@@ -1469,6 +1578,236 @@ function applyPreset(s, n, w) {
   showToast(`Applied ${s}/${n}/${w} split!`);
 }
 
+const SOURCE_NAMES = { savings: "Savings", needs: "Needs", wants: "Wants" };
+function goalSaved(g) { return g.adds.reduce((t, a) => t + a.amount, 0); }
+function goalsReserved() { return state.goals.filter(g => !g.bought).reduce((t, g) => t + goalSaved(g), 0); }
+function goalFromAllowance(date) {
+  return state.goals.reduce((t, g) => t + g.adds.filter(a => a.date === date && a.from !== "savings").reduce((n, a) => n + a.amount, 0), 0);
+}
+
+const openGoals = new Set();
+function renderGoals() {
+  const box = document.getElementById("goals-list");
+  const reserved = goalsReserved();
+  document.getElementById("goals-total-badge").textContent = reserved ? `${fmt(reserved)} set aside` : "";
+  box.innerHTML = state.goals.length ? "" : '<div class="sub" style="padding:8px 0;">No goals yet.</div>';
+  state.goals.slice().sort((a, b) => !!a.bought - !!b.bought).forEach(g => {
+    const saved = goalSaved(g);
+    const pct = g.bought ? 100 : Math.min(100, g.target ? saved / g.target * 100 : 0);
+    const bySource = Object.keys(SOURCE_NAMES).map(k => {
+      const total = g.adds.filter(a => a.from === k).reduce((t, a) => t + a.amount, 0);
+      return total ? `${SOURCE_NAMES[k]} ${fmt(total)}` : "";
+    }).filter(Boolean).join(" • ");
+    const status = g.bought ? `Bought for ${fmt(g.bought.amount)}` : saved >= g.target ? "Ready to buy!" : `${fmt(g.target - saved)} to go`;
+    const div = document.createElement("div");
+    div.className = "goal";
+    div.innerHTML = `
+      <div class="goal-top"><strong>${esc(g.name)}</strong><span>${g.bought ? "✓" : `${fmt(saved)} / ${fmt(g.target)}`}</span></div>
+      <div class="goal-bar"><div style="width:${pct}%"></div></div>
+      <div class="sub">${status}${bySource ? ` • From: ${bySource}` : ""}</div>
+      ${g.bought ? `<button class="btn-secondary" onclick="undoPurchase(${g.id})">Undo Purchase</button>` : `
+      <div class="goal-add">
+        <input type="number" step="0.01" inputmode="decimal" id="goal-amt-${g.id}" placeholder="Amount" />
+        <select id="goal-from-${g.id}">
+          <option value="savings">Savings</option><option value="needs">Needs</option><option value="wants">Wants</option>
+        </select>
+        <button class="btn-primary" onclick="addToGoal(${g.id})">Add</button>
+      </div>
+      ${saved < g.target ? `<div id="goal-suggest-${g.id}">${suggestionHTML(g, drafts["goal-amt-" + g.id])}</div>` : ""}
+      <div class="goal-actions">
+        <button class="btn-secondary" onclick="buyGoal(${g.id})">Bought It</button>
+        ${g.adds.length ? `<button class="btn-secondary" onclick="toggleGoal(${g.id})">${openGoals.has(g.id) ? "Hide" : "History"}</button>` : ""}
+        <button class="btn-secondary" style="color:var(--red);" onclick="delGoal(${g.id})">Delete</button>
+      </div>
+      ${openGoals.has(g.id) ? g.adds.slice().reverse().map(a => `
+        <div class="row"><span class="sub">${esc(showDate(a.date))} • ${SOURCE_NAMES[a.from]}</span>
+        <span>${fmt(a.amount)} <button class="btn-icon" onclick="delGoalAdd(${g.id}, ${a.id})">×</button></span></div>`).join("") : ""}`}
+    `;
+    // Keep anything half-typed when the screen refreshes.
+    const oldAmt = drafts["goal-amt-" + g.id], oldFrom = drafts["goal-from-" + g.id];
+    box.appendChild(div);
+    if (oldAmt) div.querySelector(`#goal-amt-${g.id}`).value = oldAmt;
+    if (oldFrom && !g.bought) div.querySelector(`#goal-from-${g.id}`).value = oldFrom;
+  });
+}
+const drafts = {};
+document.addEventListener("input", e => {
+  if (!/^goal-(amt|from)-/.test(e.target.id)) return;
+  drafts[e.target.id] = e.target.value;
+  const id = Number(e.target.id.split("-").pop());
+  const box = document.getElementById("goal-suggest-" + id);
+  if (box && e.target.id.startsWith("goal-amt-")) box.innerHTML = suggestionHTML(findGoal(id), e.target.value);
+});
+
+function findGoal(id) { return state.goals.find(g => g.id === id); }
+function toggleGoal(id) { openGoals.has(id) ? openGoals.delete(id) : openGoals.add(id); render(); }
+
+function addGoal() {
+  const name = document.getElementById("goal-name").value.trim();
+  const target = Number(document.getElementById("goal-target").value);
+  if (!name || !(Number.isFinite(target) && target > 0)) { showToast("Enter a name and price"); return; }
+  state.goals.push({ id: uid(), name, target, adds: [], bought: null });
+  document.getElementById("goal-name").value = "";
+  document.getElementById("goal-target").value = "";
+  saveState(); render();
+}
+
+function addToGoal(id) {
+  const g = findGoal(id);
+  if (!g || g.bought) return;
+  const amount = Number(document.getElementById("goal-amt-" + id).value);
+  const from = document.getElementById("goal-from-" + id).value;
+  if (!(Number.isFinite(amount) && amount > 0)) { showToast("Enter an amount"); return; }
+  saveToGoal(g, [{ from, amount }]);
+}
+
+// Splits an amount (worked in centavos so the parts always add up exactly).
+function splitAmount(amount, weights) {
+  const keys = Object.keys(weights).filter(k => weights[k] > 0);
+  const total = keys.reduce((t, k) => t + weights[k], 0);
+  const cents = Math.round(amount * 100);
+  let used = 0;
+  return keys.map((k, i) => {
+    const part = i === keys.length - 1 ? cents - used : Math.min(cents - used, Math.round(cents * weights[k] / total));
+    used += part;
+    return { from: k, amount: part / 100 };
+  }).filter(p => p.amount > 0);
+}
+
+function suggestions() {
+  const list = [
+    { key: "mine", label: "My split", weights: { savings: state.pctSav, needs: state.pctNeed, wants: state.pctWant } },
+    { key: "half", label: "50% Savings + 50% Wants", weights: { savings: 50, wants: 50 } },
+    { key: "savings", label: "All Savings", weights: { savings: 1 } },
+    { key: "wants", label: "All Wants", weights: { wants: 1 } },
+    { key: "needs", label: "All Needs", weights: { needs: 1 } }
+  ];
+  return list.filter(o => Object.values(o.weights).some(v => v > 0));
+}
+
+// Uses the typed amount, or whatever is still needed if the box is empty.
+function suggestionAmount(g, typed) {
+  const left = Math.max(0, Math.round((g.target - goalSaved(g)) * 100) / 100);
+  const n = Number(typed);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, left) : left;
+}
+
+function describeParts(parts) {
+  return parts.map(p => `${SOURCE_NAMES[p.from]} ${fmt(p.amount)}`).join(" + ");
+}
+
+function suggestionHTML(g, typed) {
+  const amount = suggestionAmount(g, typed);
+  return `<div class="sub">Suggestions for ${fmt(amount)} (tap one)</div>` + suggestions().map(o => `
+    <button class="suggest" onclick="useSuggestion(${g.id}, '${o.key}')"><strong>${o.label}</strong><span>${describeParts(splitAmount(amount, o.weights))}</span></button>`).join("");
+}
+
+function useSuggestion(id, key) {
+  const g = findGoal(id);
+  const option = suggestions().find(o => o.key === key);
+  if (!g || g.bought || !option) return;
+  const amount = suggestionAmount(g, document.getElementById("goal-amt-" + id).value);
+  if (amount > 0) saveToGoal(g, splitAmount(amount, option.weights));
+}
+
+// What is left of today's cap.
+function leftToday() {
+  const day = groupDays(state.logs).find(d => d.date === todayISO());
+  if (day) return day.cap - day.goal - day.needs - day.wants;
+  const off = !pickedDate && document.getElementById("log-type").value === "off";
+  return (off ? 0 : currentCap(state)) - goalFromAllowance(todayISO());
+}
+
+function saveToGoal(g, parts) {
+  const amount = parts.reduce((t, p) => t + p.amount, 0);
+  const daily = parts.filter(p => p.from !== "savings").reduce((t, p) => t + p.amount, 0);
+  const unpaid = state.bills.filter(b => b.status === "active").reduce((t, b) => t + Math.max(0, b.monthly - paidThisCycle(b.id)), 0);
+  let message = `Set aside ${fmt(amount)} for ${g.name}?\n${describeParts(parts)}`;
+  if (daily > 0) {
+    const after = leftToday() - daily;
+    message += after >= -0.004 ? `\n\nLeft today will be ${fmt(Math.max(0, after))}.` : `\n\nThis puts you ${fmt(-after)} over today's cap.`;
+  }
+  if (amount > totals().cash - unpaid - goalsReserved() + 0.004) message += "\n\nWarning: this is more than your free cash after unpaid bills and goals.";
+  if (!confirm(message)) return;
+  const date = todayISO();
+  // Money from the daily allowance needs today to have a cap.
+  if (daily > 0 && !state.logs.some(l => l.date === date)) {
+    const type = !pickedDate ? document.getElementById("log-type").value : "work";
+    state.logs.push({ id: uid(), date, type, needs: 0, wants: 0, note: "Goal set-aside", cap: type === "off" ? 0 : currentCap(state), auto: true });
+  }
+  parts.forEach(p => g.adds.push({ id: uid(), date, amount: p.amount, from: p.from }));
+  delete drafts["goal-amt-" + g.id];
+  const box = document.getElementById("goal-amt-" + g.id);
+  if (box) box.value = "";
+  saveState(); render();
+  showToast(`${fmt(amount)} set aside`);
+}
+
+// Removes placeholder days that no longer have any goal money.
+function cleanAutoDays() {
+  state.logs = state.logs.filter(l => !(l.auto && !goalFromAllowance(l.date) && state.logs.filter(x => x.date === l.date).length === 1));
+}
+
+function delGoalAdd(goalId, addId) {
+  const g = findGoal(goalId);
+  if (!g || !confirm("Remove this amount from the goal?")) return;
+  g.adds = g.adds.filter(a => a.id !== addId);
+  cleanAutoDays();
+  saveState(); render();
+}
+
+function delGoal(id) {
+  const g = findGoal(id);
+  if (!g || !confirm(`Delete "${g.name}"? Its set-aside money is released. Your cash doesn't change.`)) return;
+  state.goals = state.goals.filter(x => x.id !== id);
+  cleanAutoDays();
+  saveState(); render();
+}
+
+function buyGoal(id) {
+  const g = findGoal(id);
+  if (!g || g.bought) return;
+  const answer = prompt(`How much did you pay for ${g.name}? (₱)\nDon't also add it in Daily Log.`, g.target);
+  if (answer === null) return;
+  const amount = Number(answer.replace(/[₱,\s]/g, ""));
+  if (!(Number.isFinite(amount) && amount > 0)) { showToast("Enter a valid price"); return; }
+  const saved = goalSaved(g);
+  const gap = amount - saved;
+  const note = gap > 0.004 ? ` You saved ${fmt(saved)}; the extra ${fmt(gap)} comes from your other cash.` : gap < -0.004 ? ` The unused ${fmt(-gap)} is released.` : "";
+  if (!confirm(`Deduct ${fmt(amount)} from your cash?${note}`)) return;
+  g.bought = { amount, date: todayISO() };
+  saveState(); render();
+  showToast("Goal reached!");
+}
+
+function undoPurchase(id) {
+  const g = findGoal(id);
+  if (!g || !g.bought || !confirm(`Undo this purchase? ${fmt(g.bought.amount)} returns to your cash.`)) return;
+  g.bought = null;
+  saveState(); render();
+}
+
+// Adds goal activity to the history list. Days with only goal activity get no cap and don't count as workdays.
+function historyDays(days) {
+  const map = new Map(days.map(d => [d.date, { ...d, events: [] }]));
+  const dayFor = date => {
+    if (!map.has(date)) map.set(date, { date, id: 0, type: "none", cap: 0, goal: 0, needs: 0, wants: 0, items: [], events: [] });
+    return map.get(date);
+  };
+  state.goals.forEach(g => {
+    g.adds.forEach(a => {
+      const day = dayFor(a.date);
+      day.events.push({ goalId: g.id, addId: a.id, id: a.id, name: g.name, text: `Set aside from ${SOURCE_NAMES[a.from]} ${fmt(a.amount)}`, amount: a.amount });
+      day.id = Math.max(day.id, a.id);
+    });
+    if (g.bought) {
+      const day = dayFor(g.bought.date);
+      day.events.push({ name: g.name, text: `Bought for ${fmt(g.bought.amount)}`, id: Number.MAX_SAFE_INTEGER, amount: 0 });
+    }
+  });
+  return Array.from(map.values());
+}
+
 // Combines entries by date. A day has one status and ONE cap, however many entries it has.
 function groupDays(logs) {
   const map = new Map();
@@ -1481,7 +1820,9 @@ function groupDays(logs) {
     day.items.push(l);
     if (l.type === "work" && day.type !== "work") { day.type = "work"; day.cap = l.cap; }
   });
-  return Array.from(map.values());
+  const result = Array.from(map.values());
+  result.forEach(day => { day.goal = goalFromAllowance(day.date); });
+  return result;
 }
 
 const openDays = new Set();
@@ -1811,6 +2152,8 @@ DAILY LOGS:
 `;
   groupDays(state.logs).sort((a, b) => b.date.localeCompare(a.date)).forEach(l => { txt += `${showDate(l.date)}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs.toFixed(2)} | Wants: ₱${l.wants.toFixed(2)}
 `; });
+  txt += `\nGOALS:\n`;
+  state.goals.forEach(g => { txt += `${g.name}: ${g.bought ? `bought for ${fmt(g.bought.amount)}` : `${fmt(goalSaved(g))} of ${fmt(g.target)}`}\n`; });
   txt += `
 BILLS & LOANS:
 `;
