@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>PesoFlow — 50/30/20 Budget & Loan Tracker</title>
@@ -321,6 +321,8 @@
   <span class="sub" id="last-saved-time">Ready</span>
 </div>
 
+<div class="card hidden amber" id="warning-box" style="font-size:12.5px;"></div>
+
 <div class="tabs">
   <button class="tab active" id="tab-overview" onclick="switchTab('overview')">Overview</button>
   <button class="tab" id="tab-daily" onclick="switchTab('daily')">Daily Log</button>
@@ -367,7 +369,7 @@
     <div class="card-header">
       <div>
         <div class="card-title">Smart Wallet Router (Where to Park Your Money)</div>
-        <div class="sub">Tap Edit Wallets to customize your banks, e-wallets, or cash</div>
+        <div class="sub">Planning guide only. These are not separate bank balances, so don't add them together.</div>
       </div>
       <button class="btn-sm" onclick="openWalletModal()">✎ Edit Wallets</button>
     </div>
@@ -432,8 +434,8 @@
     </div>
     <div class="form-grid">
       <div>
-        <label>Date (MM/DD/YY)</label>
-        <input type="text" id="log-date" placeholder="11/27/26" />
+        <label>Date</label>
+        <input type="date" id="log-date" />
       </div>
       <div>
         <label>Day Status</label>
@@ -546,7 +548,7 @@
         <input type="number" step="0.01" id="bill-amt" placeholder="0.00" />
       </div>
       <div>
-        <label>Already Paid This Month (₱)</label>
+        <label>Paid This Month (₱, deducted from cash)</label>
         <input type="number" step="0.01" id="bill-paid" placeholder="0.00" />
       </div>
       <div>
@@ -567,20 +569,21 @@
     <div class="card-title">Income & Work Schedule</div>
     <div class="form-grid">
       <div>
-        <label>Total Money In So Far (₱)</label>
-        <input type="number" step="0.01" id="set-earned" oninput="saveSettings()" />
+        <label>Actual Cash on Hand (₱)</label>
+        <input type="number" step="0.01" id="set-cash" />
+        <button class="btn-secondary" style="margin-top:5px;" onclick="correctCash()">Correct My Cash</button>
       </div>
       <div>
         <label>Daily Work Pay Rate (₱)</label>
-        <input type="number" step="0.01" id="set-rate" oninput="saveSettings()" />
+        <input type="number" step="0.01" id="set-rate" onchange="saveSettings()" />
       </div>
       <div>
         <label>Working Days per Month</label>
-        <input type="number" step="1" id="set-days" oninput="saveSettings()" />
+        <input type="number" step="1" id="set-days" onchange="saveSettings()" />
       </div>
       <div>
         <label>Transfer Batch (Workdays)</label>
-        <input type="number" step="1" id="set-batch" oninput="saveSettings()" />
+        <input type="number" step="1" id="set-batch" onchange="saveSettings()" />
       </div>
     </div>
   </div>
@@ -598,15 +601,15 @@
     <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
       <div>
         <label>Savings %</label>
-        <input type="number" step="1" id="set-pct-sav" oninput="saveSettings()" />
+        <input type="number" step="1" id="set-pct-sav" onchange="saveSettings()" />
       </div>
       <div>
         <label>Needs %</label>
-        <input type="number" step="1" id="set-pct-need" oninput="saveSettings()" />
+        <input type="number" step="1" id="set-pct-need" onchange="saveSettings()" />
       </div>
       <div>
         <label>Wants %</label>
-        <input type="number" step="1" id="set-pct-want" oninput="saveSettings()" />
+        <input type="number" step="1" id="set-pct-want" onchange="saveSettings()" />
       </div>
     </div>
   </div>
@@ -634,8 +637,8 @@
         <input type="number" step="0.01" id="add-money-amt" placeholder="0.00" />
       </div>
       <div>
-        <label>Date (MM/DD/YY)</label>
-        <input type="text" id="add-money-date" />
+        <label>Date</label>
+        <input type="date" id="add-money-date" />
       </div>
     </div>
     <div style="margin-bottom:12px;">
@@ -650,13 +653,15 @@
 <div class="modal-backdrop hidden" id="income-history-modal">
   <div class="modal">
     <div class="card-header">
-      <h3 style="margin:0; font-size:16px;">Money In / Deposit History</h3>
+      <h3 style="margin:0; font-size:16px;">Money History</h3>
       <button class="btn-icon" onclick="closeModal('income-history-modal')">✕</button>
     </div>
     <p class="sub" style="margin-top:0; margin-bottom:10px;">
-      Track all deposits added to your pool. Deleting an entry automatically deducts it from Total Money In.
+      Deposits, cash corrections and bill payments. Deleting an entry reverses its effect on your cash.
     </p>
     <div id="income-history-list"></div>
+    <div class="card-title" style="margin-top:14px;">Bill Payments</div>
+    <div id="payment-history-list"></div>
   </div>
 </div>
 
@@ -668,7 +673,7 @@
       <button class="btn-icon" onclick="closeModal('wallet-modal')">✕</button>
     </div>
     <p class="sub" style="margin-top:0; margin-bottom:12px;">
-      Configure where your money is parked. Each wallet automatically calculates its live peso balance based on the rule you assign.
+      Configure where your money is parked. Each wallet shows a planning amount based on its rule, not its real bank balance.
     </p>
     <div id="wallet-editor-list"></div>
     <button class="btn-secondary" style="width:100%; margin-bottom:10px;" onclick="addWalletSlot()">+ Add Another Bank / Wallet</button>
@@ -687,7 +692,7 @@
     <div class="form-grid">
       <div>
         <label>Date</label>
-        <input type="text" id="edit-log-date" />
+        <input type="date" id="edit-log-date" />
       </div>
       <div>
         <label>Day Status</label>
@@ -775,7 +780,8 @@
       <button class="btn-secondary" onclick="document.getElementById('import-file').click()">Restore Backup File (.json)</button>
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBackupJSON(event)" />
       <button class="btn-secondary" onclick="copyNotesSummary()">Copy Text Summary (For Notes App)</button>
-      <button class="btn-secondary" onclick="archiveAndStartNewMonth()">Archive Month & Start Next Cycle</button>
+      <button class="btn-secondary" onclick="archiveAndStartNewMonth()">Start Next Month Cycle</button>
+      <button class="btn-secondary" onclick="downloadSafetyCopy()">Download Safety Copy (Before Last Replace/Upgrade)</button>
       <button class="btn-secondary" style="color:var(--red);" onclick="resetAllBlank()">Clear All Data (Reset to ₱0.00)</button>
     </div>
   </div>
@@ -786,6 +792,7 @@
 <script>
 const STORAGE_KEY = "pesoflow_universal_v2";
 const PAGE_SIZE = 15;
+const SAFETY_KEY = "pesoflow_safety_copy";
 let currentPage = 1;
 let storageAvailable = true;
 
@@ -805,6 +812,8 @@ const BLANK_STATE = {
   bills: [],
   logs: [],
   incomeLogs: [],
+  payments: [],
+  cycle: 1,
   archivedMonths: []
 };
 
@@ -833,32 +842,169 @@ function checkStorageHealth() {
   }
 }
 
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+let lastId = 0;
+function uid() {
+  lastId = Math.max(Date.now(), lastId + 1);
+  return lastId;
+}
+
+function isoFromDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function todayISO() { return isoFromDate(new Date()); }
+
+// Converts MM/DD/YY to YYYY-MM-DD. Anything unreadable is kept as typed.
+function toISO(str) {
+  const raw = String(str ?? "").trim();
+  let m, y, mo, d;
+  if ((m = raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/))) [y, mo, d] = [+m[1], +m[2], +m[3]];
+  else if ((m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/))) [mo, d, y] = [+m[1], +m[2], +m[3]];
+  else return raw;
+  if (y < 100) y += 2000;
+  const dt = new Date(y, mo - 1, d);
+  return (dt.getMonth() === mo - 1 && dt.getDate() === d) ? isoFromDate(dt) : raw;
+}
+
+function showDate(str) {
+  const m = String(str || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[2]}/${m[3]}/${m[1].slice(2)}` : String(str || "No date");
+}
+
+function currentCap(s) {
+  const bills = s.bills.filter(b => b.status === "active").reduce((t, b) => t + Number(b.monthly), 0);
+  const pool = Math.max(0, s.dailyRate * s.workDaysPerMonth - bills);
+  return pool * ((s.pctNeed + s.pctWant) / 100) / s.workDaysPerMonth;
+}
+
+// Validates any loaded data (saved, imported or from a link) and upgrades old formats.
+function normalizeState(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid data");
+  const num = (v, f = 0) => (v !== null && v !== "" && Number.isFinite(Number(v))) ? Number(v) : f;
+  const pos = (v, f = 0) => Math.max(0, num(v, f));
+  const txt = v => String(v ?? "");
+  const list = v => Array.isArray(v) ? v.filter(x => x && typeof x === "object") : [];
+  const pick = (v, ok, f) => ok.includes(v) ? v : f;
+  const used = new Set();
+  const id = v => {
+    let n = Number(v);
+    if (!Number.isSafeInteger(n) || n <= 0 || used.has(n)) n = uid();
+    used.add(n);
+    return n;
+  };
+  const d = { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...input };
+  const out = {
+    version: 3,
+    dailyRate: pos(d.dailyRate, 700),
+    workDaysPerMonth: Math.max(1, Math.round(num(d.workDaysPerMonth, 20))),
+    batchDays: Math.max(1, Math.round(num(d.batchDays, 5))),
+    pctSav: pos(d.pctSav), pctNeed: pos(d.pctNeed), pctWant: pos(d.pctWant),
+    cycle: Math.max(1, Math.round(num(d.cycle, 1))),
+    archivedMonths: list(d.archivedMonths)
+  };
+  out.wallets = list(d.wallets).map(w => ({
+    id: id(w.id), name: txt(w.name), role: txt(w.role),
+    rule: pick(w.rule, ["hub_net_savings", "goal_reserve", "daily_pocket", "pure_savings_only", "unpaid_bills_only"], "pure_savings_only"),
+    customTarget: pos(w.customTarget), color: pick(w.color, ["amber", "green", "blue", "purple"], "blue")
+  }));
+  out.bills = list(d.bills).map(b => ({
+    id: id(b.id), name: txt(b.name), monthly: pos(b.monthly),
+    status: pick(b.status, ["active", "paid_forever"], "active")
+  }));
+  out.incomeLogs = list(d.incomeLogs).map(x => ({ id: id(x.id), date: toISO(x.date), amount: num(x.amount), note: txt(x.note) }));
+
+  const isOld = num(input.version) < 3;
+  if (isOld) {
+    // Keep the old Total Money In exactly, even if it didn't match deposit history.
+    const gap = num(d.earned) - out.incomeLogs.reduce((t, x) => t + x.amount, 0);
+    if (Math.abs(gap) >= 0.005) out.incomeLogs.push({ id: uid(), date: todayISO(), amount: gap, note: "Balance carried over from old version" });
+    out.payments = [];
+    list(d.bills).forEach((b, i) => {
+      const paid = num(b.paidThisMonth);
+      if (paid) out.payments.push({ id: uid(), billId: out.bills[i].id, name: out.bills[i].name, amount: paid, date: todayISO(), cycle: out.cycle, full: false });
+    });
+  } else {
+    out.payments = list(d.payments).map(p => ({
+      id: id(p.id), billId: num(p.billId), name: txt(p.name), amount: num(p.amount),
+      date: toISO(p.date), cycle: Math.max(1, Math.round(num(p.cycle, 1))), full: p.full === true
+    }));
+  }
+  const fallbackCap = currentCap(out);
+  out.logs = list(d.logs).map(l => ({
+    id: id(l.id), date: toISO(l.date), type: l.type === "off" ? "off" : "work",
+    needs: num(l.needs), wants: num(l.wants), note: txt(l.note),
+    cap: l.type === "off" ? 0 : pos(l.cap, fallbackCap)
+  }));
+  out.earned = out.incomeLogs.reduce((t, x) => t + x.amount, 0);
+  return out;
+}
+
+function totals() {
+  const spent = state.logs.reduce((t, l) => t + l.needs + l.wants, 0);
+  const paid = state.payments.reduce((t, p) => t + p.amount, 0);
+  state.earned = state.incomeLogs.reduce((t, x) => t + x.amount, 0);
+  return { spent, paid, cash: state.earned - spent - paid };
+}
+
+function paidThisCycle(billId) {
+  return state.payments.filter(p => p.billId === billId && p.cycle === state.cycle).reduce((t, p) => t + p.amount, 0);
+}
+
+function addPayment(bill, amount, full = false) {
+  state.payments.unshift({ id: uid(), billId: bill.id, name: bill.name, amount, date: todayISO(), cycle: state.cycle, full });
+}
+
+let loadError = false;
+function keepSafetyCopy(raw) {
+  try { localStorage.setItem(SAFETY_KEY, raw); return true; } catch (e) { return false; }
+}
+
 function loadInitialState() {
+  let saved = null, current = null;
+  try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      const upgraded = normalizeState(parsed);
+      if (!(parsed.version >= 3) && !keepSafetyCopy(saved)) loadError = true;
+      current = upgraded;
+    } catch (e) {
+      loadError = true;
+      keepSafetyCopy(saved);
+    }
+  }
   const hash = window.location.hash || "";
   if (hash.startsWith("#data=")) {
+    history.replaceState(null, "", window.location.pathname + window.location.search);
     try {
-      const decoded = JSON.parse(decodeURIComponent(atob(hash.slice(6))));
-      const merged = { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...decoded };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-      } catch (err) {}
-      history.replaceState(null, "", window.location.pathname + window.location.search);
-      return merged;
-    } catch (e) {}
-  }
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...JSON.parse(saved) };
+      const incoming = normalizeState(JSON.parse(decodeURIComponent(atob(hash.slice(6)))));
+      if (confirm("Load the data in this snapshot link? It REPLACES the tracker data on this device. Only continue if you trust the link.")) {
+        if (!saved || keepSafetyCopy(saved)) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(incoming));
+          loadError = false;
+          return incoming;
+        }
+        alert("Couldn't make a safety copy, so your data was not replaced.");
+      }
+    } catch (e) {
+      alert("That snapshot link couldn't be loaded.");
     }
-  } catch (e) {}
-  return JSON.parse(JSON.stringify(BLANK_STATE));
+  }
+  return current || normalizeState({ ...JSON.parse(JSON.stringify(BLANK_STATE)), version: 3 });
 }
 
 let state = loadInitialState();
-if (!Array.isArray(state.incomeLogs)) state.incomeLogs = [];
 
 function saveState() {
+  // Never overwrite saved data that failed to load or couldn't be backed up.
+  if (loadError) {
+    document.getElementById("last-saved-time").textContent = "Not saving (see warning)";
+    return;
+  }
+  totals();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -891,27 +1037,11 @@ function closeModal(id) {
 }
 
 function parseDateValue(str) {
-  const parts = String(str || "").split(/[\/\-]/);
-  if (parts.length === 3) {
-    if (parts[0].length === 4) {
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime() || 0;
-    }
-    let yr = Number(parts[2]);
-    if (yr < 100) yr += 2000;
-    return new Date(yr, Number(parts[0]) - 1, Number(parts[1])).getTime() || 0;
-  }
-  return 0;
+  return /^\d{4}-\d{2}-\d{2}$/.test(str) ? Date.parse(str) : 0;
 }
 
 function getMonthKey(str) {
-  const parts = String(str || "").split(/[\/\-]/);
-  if (parts.length === 3) {
-    if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, "0")}`;
-    let yr = Number(parts[2]);
-    if (yr < 100) yr += 2000;
-    return `${yr}-${parts[0].padStart(2, "0")}`;
-  }
-  return "Other";
+  return /^\d{4}-\d{2}-\d{2}$/.test(str) ? str.slice(0, 7) : "Other";
 }
 
 function formatMonthLabel(key) {
@@ -948,21 +1078,21 @@ function render() {
   const wantDay = wantMo / state.workDaysPerMonth;
   const dailySpendCap = needDay + wantDay;
 
-  let allNeeds = 0, allWants = 0, allWorkCount = 0;
+  let allNeeds = 0, allWants = 0, allWorkCount = 0, earnedCap = 0;
   state.logs.forEach(item => {
     allNeeds += Number(item.needs);
     allWants += Number(item.wants);
     if (item.type === "work") allWorkCount++;
+    earnedCap += item.cap;
   });
 
   const totDailySpent = allNeeds + allWants;
-  const earnedCap = allWorkCount * dailySpendCap;
   const netRollover = earnedCap - totDailySpent;
 
-  const totalPaidThisMonth = state.bills.reduce((s, b) => s + Number(b.paidThisMonth), 0);
-  const unpaidThisMonth = activeBills.reduce((s, b) => s + Math.max(0, Number(b.monthly) - Number(b.paidThisMonth)), 0);
+  const totalPaidThisMonth = state.payments.filter(p => p.cycle === state.cycle).reduce((s, p) => s + p.amount, 0);
+  const unpaidThisMonth = activeBills.reduce((s, b) => s + Math.max(0, b.monthly - paidThisCycle(b.id)), 0);
 
-  const cashLeft = state.earned - totDailySpent - totalPaidThisMonth;
+  const cashLeft = totals().cash;
   const pureNet = cashLeft - unpaidThisMonth;
 
   const monthSelect = document.getElementById("filter-month");
@@ -985,10 +1115,10 @@ function render() {
     if (fMonth !== "all" && getMonthKey(item.date) !== fMonth) return false;
     if (fType === "work" && item.type !== "work") return false;
     if (fType === "off" && item.type !== "off") return false;
-    const cap = item.type === "work" ? dailySpendCap : 0;
+    const cap = item.cap;
     const spent = Number(item.needs) + Number(item.wants);
     if (fType === "over" && spent <= cap) return false;
-    if (searchQ && !(`${item.date} ${item.note || ""}`.toLowerCase().includes(searchQ))) return false;
+    if (searchQ && !(`${showDate(item.date)} ${item.date} ${item.note || ""}`.toLowerCase().includes(searchQ))) return false;
     return true;
   });
 
@@ -1002,13 +1132,13 @@ function render() {
     return 0;
   });
 
-  let filtNeeds = 0, filtWants = 0, filtWork = 0;
+  let filtNeeds = 0, filtWants = 0, filtCap = 0;
   filteredLogs.forEach(item => {
     filtNeeds += Number(item.needs);
     filtWants += Number(item.wants);
-    if (item.type === "work") filtWork++;
+    filtCap += item.cap;
   });
-  const filtRollover = (filtWork * dailySpendCap) - (filtNeeds + filtWants);
+  const filtRollover = filtCap - (filtNeeds + filtWants);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
   if (currentPage > totalPages) currentPage = totalPages;
@@ -1019,14 +1149,14 @@ function render() {
   const tbody = document.getElementById("log-tbody");
   tbody.innerHTML = "";
   pageItems.forEach(item => {
-    const cap = item.type === "work" ? dailySpendCap : 0;
+    const cap = item.cap;
     const diff = cap - (Number(item.needs) + Number(item.wants));
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>
-        <strong>${item.date}</strong>
+        <strong>${esc(showDate(item.date))}</strong>
         ${item.type === "off" ? '<span class="pill pill-amber">Off</span>' : ''}
-        ${item.note ? `<div class="sub">${item.note}</div>` : ''}
+        ${item.note ? `<div class="sub">${esc(item.note)}</div>` : ''}
       </td>
       <td class="num">${fmt(item.needs)}</td>
       <td class="num">${fmt(item.wants)}</td>
@@ -1058,13 +1188,13 @@ function render() {
   document.getElementById("ov-earned").textContent = fmt(state.earned);
   const depositCount = state.incomeLogs.length;
   document.getElementById("ov-workdays-logged").textContent = depositCount > 0
-    ? `${depositCount} deposits • ${allWorkCount} workdays`
+    ? `${depositCount} money entries • ${allWorkCount} workdays`
     : `${allWorkCount} workdays logged`;
   document.getElementById("ov-cash-left").textContent = fmt(cashLeft);
   document.getElementById("ov-cash-left").className = "metric-val " + (cashLeft >= 0 ? "green" : "red");
   document.getElementById("ov-pure-net").textContent = `${fmt(pureNet)} after ${fmt(unpaidThisMonth)} unpaid bills`;
   document.getElementById("ov-daily-spent").textContent = fmt(totDailySpent);
-  document.getElementById("ov-rollover").textContent = `${netRollover >= 0 ? '+' : ''}${fmt(netRollover)} vs ${allWorkCount}-day cap`;
+  document.getElementById("ov-rollover").textContent = `${netRollover >= 0 ? '+' : ''}${fmt(netRollover)} vs saved daily caps`;
   document.getElementById("ov-rollover").className = "metric-sub " + (netRollover >= 0 ? "green" : "red");
   document.getElementById("ov-bills-paid").textContent = fmt(totalPaidThisMonth);
   document.getElementById("ov-bills-unpaid").textContent = `${fmt(unpaidThisMonth)} unpaid this mo`;
@@ -1102,23 +1232,29 @@ function render() {
   state.wallets.forEach(w => {
     let mainVal = "₱0.00";
     let subText = "";
+    let kind = "";
     const c = colorMap[w.color] || "var(--blue)";
 
     if (w.rule === "hub_net_savings") {
+      kind = "All remaining cash";
       mainVal = fmt(Math.max(0, cashLeft));
       subText = `Net savings ${fmt(Math.max(0, pureNet))} + Unpaid bills ${fmt(unpaidThisMonth)}`;
     } else if (w.rule === "goal_reserve") {
+      kind = "Monthly target";
       const target = Number(w.customTarget || 0);
       const perBatch = (target / state.workDaysPerMonth) * state.batchDays;
       mainVal = `${fmt(target)}/mo`;
       subText = `Transfer ${fmt(perBatch)} every ${state.batchDays} workdays (${fmt(target / state.workDaysPerMonth)}/day)`;
     } else if (w.rule === "daily_pocket") {
+      kind = "Daily allowance";
       mainVal = `${fmt(dailySpendCap)}/day`;
       subText = `${fmt(dailySpendCap * state.batchDays)} per ${state.batchDays} days (Needs ${fmt(needDay)} + Wants ${fmt(wantDay)})`;
     } else if (w.rule === "unpaid_bills_only") {
+      kind = "Amount to set aside";
       mainVal = fmt(unpaidThisMonth);
       subText = `Bills reserve: ${fmt(fixedDay)}/workday`;
     } else if (w.rule === "pure_savings_only") {
+      kind = "Cash after unpaid bills";
       mainVal = fmt(Math.max(0, pureNet));
       subText = `Target rate: ${fmt(savDay)}/workday`;
     }
@@ -1127,12 +1263,13 @@ function render() {
     div.className = "wallet-card";
     div.innerHTML = `
       <div>
-        <div style="font-weight:700; font-size:13.5px;"><span class="dot" style="background:${c};"></span>${w.name}</div>
-        <div class="sub">${w.role}</div>
+        <div style="font-weight:700; font-size:13.5px;"><span class="dot" style="background:${c};"></span>${esc(w.name)}</div>
+        <div class="sub">${esc(w.role)}</div>
         <div class="sub" style="margin-top:2px;">${subText}</div>
       </div>
       <div style="text-align:right; font-weight:750; font-size:15px; color:${c}; white-space:nowrap;">
         ${mainVal}
+        <div class="sub">${kind}</div>
       </div>
     `;
     walletContainer.appendChild(div);
@@ -1148,13 +1285,14 @@ function render() {
 
   state.bills.forEach(b => {
     const isForever = b.status === "paid_forever";
-    const isPaidMo = Number(b.paidThisMonth) >= Number(b.monthly) && Number(b.monthly) > 0;
+    const paidNow = paidThisCycle(b.id);
+    const isPaidMo = paidNow >= Number(b.monthly) && Number(b.monthly) > 0;
     const div = document.createElement("div");
     div.className = "row";
     div.innerHTML = `
       <div>
-        <strong>${b.name}</strong>
-        <div class="sub">Monthly: ${fmt(b.monthly)} • Paid this mo: ${fmt(b.paidThisMonth)}</div>
+        <strong>${esc(b.name)}</strong>
+        <div class="sub">Monthly: ${fmt(b.monthly)} • Paid this mo: ${fmt(paidNow)}</div>
       </div>
       <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
         ${isForever
@@ -1171,7 +1309,7 @@ function render() {
     loansList.appendChild(div);
   });
 
-  document.getElementById("set-earned").value = state.earned;
+  document.getElementById("set-cash").value = cashLeft.toFixed(2);
   document.getElementById("set-rate").value = state.dailyRate;
   document.getElementById("set-days").value = state.workDaysPerMonth;
   document.getElementById("set-batch").value = state.batchDays;
@@ -1182,7 +1320,15 @@ function render() {
   const pctSum = Number(state.pctSav) + Number(state.pctNeed) + Number(state.pctWant);
   const pctBadge = document.getElementById("pct-total-badge");
   pctBadge.textContent = `Total: ${pctSum}%`;
-  pctBadge.className = "pill " + (pctSum === 100 ? "pill-green" : "pill-red");
+  pctBadge.className = "pill " + (Math.abs(pctSum - 100) < 0.001 ? "pill-green" : "pill-red");
+
+  const warnings = [];
+  if (loadError) warnings.push("Your saved data couldn't be safely loaded or backed up, so saving is OFF to protect it. Download the safety copy in Backup, if available.");
+  if (Math.abs(pctSum - 100) >= 0.001) warnings.push(`Your splits total ${pctSum}%, not 100%. Fix them in Edit Splits.`);
+  if (activeMonthlyBills > monthlyIncome) warnings.push(`Bills exceed monthly work pay by ${fmt(activeMonthlyBills - monthlyIncome)}, so allowances are ₱0.`);
+  const warnEl = document.getElementById("warning-box");
+  warnEl.innerHTML = warnings.map(w => `<div>⚠ ${esc(w)}</div>`).join("");
+  warnEl.classList.toggle("hidden", warnings.length === 0);
 }
 
 // Custom Add Money & Income History
@@ -1190,7 +1336,7 @@ function openAddMoneyModal() {
   document.getElementById("preset-1d").textContent = `+1 Workday (${fmt(state.dailyRate)})`;
   document.getElementById("preset-5d").textContent = `+5 Workdays (${fmt(state.dailyRate * 5)})`;
   document.getElementById("add-money-amt").value = "";
-  document.getElementById("add-money-date").value = new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  document.getElementById("add-money-date").value = todayISO();
   document.getElementById("add-money-note").value = "";
   document.getElementById("add-money-modal").classList.remove("hidden");
   setTimeout(() => document.getElementById("add-money-amt").focus(), 50);
@@ -1211,11 +1357,10 @@ function confirmAddMoney() {
     showToast("Enter an amount greater than ₱0");
     return;
   }
-  const date = document.getElementById("add-money-date").value.trim() || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const date = document.getElementById("add-money-date").value.trim() || todayISO();
   const note = document.getElementById("add-money-note").value.trim() || "Added Funds";
 
-  state.earned = Number(state.earned) + amt;
-  state.incomeLogs.unshift({ id: Date.now(), date, amount: amt, note });
+  state.incomeLogs.unshift({ id: uid(), date, amount: amt, note });
 
   closeModal("add-money-modal");
   saveState(); render();
@@ -1228,6 +1373,7 @@ function openIncomeHistoryModal() {
 }
 
 function renderIncomeHistory() {
+  renderPaymentHistory();
   const list = document.getElementById("income-history-list");
   list.innerHTML = "";
   if (state.incomeLogs.length === 0) {
@@ -1239,11 +1385,11 @@ function renderIncomeHistory() {
     row.className = "row";
     row.innerHTML = `
       <div>
-        <strong>${item.note}</strong>
-        <div class="sub">${item.date}</div>
+        <strong>${esc(item.note)}</strong>
+        <div class="sub">${esc(showDate(item.date))}</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <strong class="green">+${fmt(item.amount)}</strong>
+        <strong class="${item.amount < 0 ? 'red' : 'green'}">${item.amount < 0 ? "−" : "+"}${fmt(Math.abs(item.amount))}</strong>
         <button class="btn-icon" style="color:var(--red);" onclick="delIncomeLog(${item.id})">×</button>
       </div>
     `;
@@ -1251,23 +1397,57 @@ function renderIncomeHistory() {
   });
 }
 
+function renderPaymentHistory() {
+  const list = document.getElementById("payment-history-list");
+  list.innerHTML = state.payments.length ? "" : '<div class="sub">No bill payments yet.</div>';
+  state.payments.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div><strong>${esc(p.name)}</strong><div class="sub">${esc(showDate(p.date))}${p.full ? " • Full payoff" : ""}</div></div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <strong class="amber">${p.amount < 0 ? "+" : "−"}${fmt(Math.abs(p.amount))}</strong>
+        <button class="btn-icon" style="color:var(--red);" onclick="delPayment(${p.id})">×</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function delPayment(id) {
+  const p = state.payments.find(x => x.id === id);
+  if (!p || !confirm(`Delete this ${fmt(p.amount)} payment record for ${p.name}? Your cash will be recalculated.`)) return;
+  state.payments = state.payments.filter(x => x.id !== id);
+  const bill = state.bills.find(b => b.id === p.billId);
+  if (p.full && bill) bill.status = "active";
+  saveState(); render(); renderIncomeHistory();
+}
+
 function delIncomeLog(id) {
   const target = state.incomeLogs.find(x => x.id === id);
-  if (!target) return;
-  state.earned = Math.max(0, Number(state.earned) - Number(target.amount));
+  if (!target || !confirm(`Delete "${target.note}" (${fmt(target.amount)})? Your cash will be recalculated.`)) return;
   state.incomeLogs = state.incomeLogs.filter(x => x.id !== id);
   saveState(); render(); renderIncomeHistory();
-  showToast(`Removed ${fmt(target.amount)}`);
+  showToast("Entry removed");
+}
+
+function correctCash() {
+  const actual = parseFloat(document.getElementById("set-cash").value);
+  if (!Number.isFinite(actual)) { showToast("Enter your actual cash"); return; }
+  const gap = actual - totals().cash;
+  if (Math.abs(gap) < 0.005) { showToast("Cash already matches"); return; }
+  if (!confirm(`Set Cash Left to ${fmt(actual)}? This records an adjustment of ${gap > 0 ? "+" : "−"}${fmt(Math.abs(gap))}.`)) return;
+  state.incomeLogs.unshift({ id: uid(), date: todayISO(), amount: gap, note: "Cash correction" });
+  saveState(); render();
+  showToast("Cash corrected");
 }
 
 function saveSettings() {
-  state.earned = parseFloat(document.getElementById("set-earned").value) || 0;
-  state.dailyRate = parseFloat(document.getElementById("set-rate").value) || 0;
+  state.dailyRate = Math.max(0, parseFloat(document.getElementById("set-rate").value) || 0);
   state.workDaysPerMonth = Math.max(1, parseInt(document.getElementById("set-days").value) || 20);
   state.batchDays = Math.max(1, parseInt(document.getElementById("set-batch").value) || 5);
-  state.pctSav = parseFloat(document.getElementById("set-pct-sav").value) || 0;
-  state.pctNeed = parseFloat(document.getElementById("set-pct-need").value) || 0;
-  state.pctWant = parseFloat(document.getElementById("set-pct-want").value) || 0;
+  state.pctSav = Math.max(0, parseFloat(document.getElementById("set-pct-sav").value) || 0);
+  state.pctNeed = Math.max(0, parseFloat(document.getElementById("set-pct-need").value) || 0);
+  state.pctWant = Math.max(0, parseFloat(document.getElementById("set-pct-want").value) || 0);
   saveState(); render();
 }
 
@@ -1278,12 +1458,13 @@ function applyPreset(s, n, w) {
 }
 
 function addLog() {
-  const date = document.getElementById("log-date").value.trim() || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const date = document.getElementById("log-date").value.trim() || todayISO();
   const type = document.getElementById("log-type").value;
   const needs = parseFloat(document.getElementById("log-needs").value) || 0;
   const wants = parseFloat(document.getElementById("log-wants").value) || 0;
   const note = document.getElementById("log-note").value.trim();
-  state.logs.push({ id: Date.now(), date, type, needs, wants, note });
+  if (needs < 0 || wants < 0) { showToast("Amounts can't be negative"); return; }
+  state.logs.push({ id: uid(), date, type, needs, wants, note, cap: type === "work" ? currentCap(state) : 0 });
   document.getElementById("log-date").value = "";
   document.getElementById("log-needs").value = "";
   document.getElementById("log-wants").value = "";
@@ -1297,7 +1478,7 @@ function openEditLog(id) {
   const item = state.logs.find(l => l.id === id);
   if (!item) return;
   document.getElementById("edit-log-id").value = item.id;
-  document.getElementById("edit-log-date").value = item.date;
+  document.getElementById("edit-log-date").value = item.date; // blank if the old date was unreadable
   document.getElementById("edit-log-type").value = item.type;
   document.getElementById("edit-log-needs").value = item.needs;
   document.getElementById("edit-log-wants").value = item.wants;
@@ -1309,8 +1490,10 @@ function saveEditLog() {
   const id = Number(document.getElementById("edit-log-id").value);
   const item = state.logs.find(l => l.id === id);
   if (!item) return;
-  item.date = document.getElementById("edit-log-date").value.trim();
-  item.type = document.getElementById("edit-log-type").value;
+  item.date = document.getElementById("edit-log-date").value || item.date;
+  const newType = document.getElementById("edit-log-type").value;
+  if (newType !== item.type) item.cap = newType === "work" ? currentCap(state) : 0;
+  item.type = newType;
   item.needs = parseFloat(document.getElementById("edit-log-needs").value) || 0;
   item.wants = parseFloat(document.getElementById("edit-log-wants").value) || 0;
   item.note = document.getElementById("edit-log-note").value.trim();
@@ -1320,6 +1503,7 @@ function saveEditLog() {
 }
 
 function delLog(id) {
+  if (!confirm("Delete this daily entry?")) return;
   state.logs = state.logs.filter(l => l.id !== id);
   saveState(); render();
 }
@@ -1330,7 +1514,10 @@ function addBill() {
   const paidThisMonth = parseFloat(document.getElementById("bill-paid").value) || 0;
   const status = document.getElementById("bill-status").value;
   if (!name) return;
-  state.bills.push({ id: Date.now(), name, monthly, paidThisMonth, status });
+  if (monthly < 0 || paidThisMonth < 0) { showToast("Amounts can't be negative"); return; }
+  const bill = { id: uid(), name, monthly, status };
+  state.bills.push(bill);
+  if (paidThisMonth > 0) addPayment(bill, paidThisMonth);
   document.getElementById("bill-name").value = "";
   document.getElementById("bill-amt").value = "";
   document.getElementById("bill-paid").value = "";
@@ -1344,7 +1531,7 @@ function openEditBill(id) {
   document.getElementById("edit-bill-id").value = b.id;
   document.getElementById("edit-bill-name").value = b.name;
   document.getElementById("edit-bill-amt").value = b.monthly;
-  document.getElementById("edit-bill-paid").value = b.paidThisMonth;
+  document.getElementById("edit-bill-paid").value = paidThisCycle(b.id);
   document.getElementById("edit-bill-status").value = b.status;
   document.getElementById("edit-bill-modal").classList.remove("hidden");
 }
@@ -1355,7 +1542,9 @@ function saveEditBill() {
   if (!b) return;
   b.name = document.getElementById("edit-bill-name").value.trim();
   b.monthly = parseFloat(document.getElementById("edit-bill-amt").value) || 0;
-  b.paidThisMonth = parseFloat(document.getElementById("edit-bill-paid").value) || 0;
+  const newPaid = Math.max(0, parseFloat(document.getElementById("edit-bill-paid").value) || 0);
+  const change = newPaid - paidThisCycle(b.id);
+  if (Math.abs(change) >= 0.005) addPayment(b, change);
   b.status = document.getElementById("edit-bill-status").value;
   closeModal("edit-bill-modal");
   saveState(); render();
@@ -1364,15 +1553,29 @@ function saveEditBill() {
 
 function markPaidMonth(id) {
   const b = state.bills.find(x => x.id === id);
-  if (b) { b.paidThisMonth = b.monthly; saveState(); render(); showToast("Marked paid for this month!"); }
+  if (!b) return;
+  const due = Math.max(0, b.monthly - paidThisCycle(id));
+  if (!due || !confirm(`Record ${fmt(due)} paid for ${b.name}?`)) return;
+  addPayment(b, due);
+  saveState(); render(); showToast("Marked paid for this month!");
 }
 
 function markPaidForever(id) {
   const b = state.bills.find(x => x.id === id);
-  if (b) { b.status = "paid_forever"; saveState(); render(); showToast("Paid Off Forever! Daily cuts increased."); }
+  if (!b) return;
+  const answer = prompt(`Final amount you're paying NOW to settle ${b.name} (₱). Enter 0 if it's already fully recorded.`);
+  if (answer === null) return;
+  const clean = answer.replace(/[₱,\s]/g, "");
+  const amt = Number(clean);
+  if (clean === "" || !Number.isFinite(amt) || amt < 0) { showToast("Enter a valid amount"); return; }
+  if (!confirm(`Pay off ${b.name} and deduct ${fmt(amt)} from your cash?`)) return;
+  addPayment(b, amt, true);
+  b.status = "paid_forever";
+  saveState(); render(); showToast("Paid off!");
 }
 
 function delBill(id) {
+  if (!confirm("Delete this commitment? Payments already recorded stay in your history and cash.")) return;
   state.bills = state.bills.filter(b => b.id !== id);
   saveState(); render();
 }
@@ -1398,11 +1601,11 @@ function renderWalletEditor() {
       <div class="form-grid">
         <div>
           <label>Bank / App Name</label>
-          <input type="text" value="${w.name}" onchange="tempWallets[${idx}].name=this.value" />
+          <input type="text" value="${esc(w.name)}" onchange="tempWallets[${idx}].name=this.value" />
         </div>
         <div>
           <label>Role / Label</label>
-          <input type="text" value="${w.role}" onchange="tempWallets[${idx}].role=this.value" />
+          <input type="text" value="${esc(w.role)}" onchange="tempWallets[${idx}].role=this.value" />
         </div>
         <div>
           <label>Auto-Calculate Rule</label>
@@ -1466,6 +1669,16 @@ function copySnapshotLink() {
   navigator.clipboard.writeText(url).then(() => { closeModal("share-modal"); showToast("Snapshot link copied!"); });
 }
 
+function downloadSafetyCopy() {
+  let raw = null;
+  try { raw = localStorage.getItem(SAFETY_KEY); } catch (e) {}
+  if (!raw) { showToast("No safety copy yet"); return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
+  a.download = "pesoflow-safety-copy.json";
+  a.click();
+}
+
 function exportBackupJSON() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
@@ -1483,8 +1696,11 @@ function importBackupJSON(e) {
   reader.onload = ev => {
     try {
       const parsed = JSON.parse(ev.target.result);
-      state = { ...JSON.parse(JSON.stringify(BLANK_STATE)), ...parsed };
-      if (!Array.isArray(state.incomeLogs)) state.incomeLogs = [];
+      const incoming = normalizeState(parsed);
+      if (!confirm("Replace the data on this device with this backup?")) return;
+      if (!loadError && !keepSafetyCopy(JSON.stringify(state))) { alert("Couldn't make a safety copy. Nothing was replaced."); return; }
+      state = incoming;
+      loadError = false;
       saveState(); render(); closeModal("backup-modal");
       showToast("Backup restored!");
     } catch (err) {
@@ -1492,30 +1708,34 @@ function importBackupJSON(e) {
     }
   };
   reader.readAsText(file);
+  e.target.value = "";
 }
 
 function copyNotesSummary() {
   let txt = `PESOFLOW BUDGET BACKUP
 Total Money In: ${fmt(state.earned)}
+Cash Left: ${fmt(totals().cash)}
 Split: ${state.pctSav}/${state.pctNeed}/${state.pctWant}
 
 DAILY LOGS:
 `;
-  state.logs.forEach(l => { txt += `${l.date}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs} | Wants: ₱${l.wants}
+  state.logs.forEach(l => { txt += `${showDate(l.date)}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs} | Wants: ₱${l.wants}
 `; });
   txt += `
 BILLS & LOANS:
 `;
-  state.bills.forEach(b => { txt += `${b.name}: ₱${b.monthly}/mo (Paid: ₱${b.paidThisMonth}) [${b.status}]
+  state.bills.forEach(b => { txt += `${b.name}: ₱${b.monthly}/mo (Paid: ₱${paidThisCycle(b.id)}) [${b.status}]
 `; });
   navigator.clipboard.writeText(txt).then(() => { closeModal("backup-modal"); showToast("Summary copied to clipboard!"); });
 }
 
 function archiveAndStartNewMonth() {
-  if (!confirm("Start a new month cycle? Current active monthly bills reset to ₱0 paid (keeping Paid-Off Forever loans removed), and your historical logs stay safely searchable by Month/Year.")) return;
-  state.earned = 0;
-  state.incomeLogs = [];
-  state.bills.forEach(b => { if (b.status === "active") b.paidThisMonth = 0; });
+  if (!confirm("Start a new month cycle? Bills show as unpaid again. Your cash, deposits, payments and daily logs are all kept. Unpaid amounts from this cycle are NOT carried over.")) return;
+  state.archivedMonths.push({
+    cycle: state.cycle, endedOn: todayISO(), cashLeft: totals().cash,
+    billsPaid: state.payments.filter(p => p.cycle === state.cycle).reduce((t, p) => t + p.amount, 0)
+  });
+  state.cycle++;
   closeModal("backup-modal");
   saveState(); render();
   showToast("New month cycle started!");
@@ -1523,7 +1743,9 @@ function archiveAndStartNewMonth() {
 
 function resetAllBlank() {
   if (!confirm("Reset everything back to ₱0.00?")) return;
-  state = JSON.parse(JSON.stringify(BLANK_STATE));
+  if (!loadError && !keepSafetyCopy(JSON.stringify(state))) { alert("Couldn't make a safety copy. Nothing was cleared."); return; }
+  state = normalizeState({ ...JSON.parse(JSON.stringify(BLANK_STATE)), version: 3 });
+  loadError = false;
   closeModal("backup-modal");
   saveState(); render();
   showToast("All data cleared!");
@@ -1536,6 +1758,7 @@ if ("serviceWorker" in navigator && window.location.protocol.startsWith("http"))
 }
 
 checkStorageHealth();
+if (!loadError) saveState();
 render();
 </script>
 </body>
