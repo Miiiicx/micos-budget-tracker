@@ -308,7 +308,6 @@
 <header>
   <div>
     <h1>PesoFlow Budget Tracker</h1>
-    <div class="sub" id="hdr-sub">50/30/20 Split • ₱0.00/day • 20 workdays/mo</div>
   </div>
   <div style="display:flex; gap:6px;">
     <button class="btn-sm" onclick="openShareModal()">Share</button>
@@ -368,8 +367,7 @@
   <div class="card">
     <div class="card-header">
       <div>
-        <div class="card-title">Smart Wallet Router (Where to Park Your Money)</div>
-        <div class="sub">Planning guide only. These are not separate bank balances, so don't add them together.</div>
+        <div class="card-title">Wallet Guide</div>
       </div>
       <button class="btn-sm" onclick="openWalletModal()">✎ Edit Wallets</button>
     </div>
@@ -379,8 +377,7 @@
   <!-- ALLOCATION BREAKDOWN -->
   <div class="card">
     <div class="card-header">
-      <div class="card-title">Dynamic Budget Allotments</div>
-      <span class="sub" id="ov-5day-note">5-Day Transfer Guide</span>
+      <div class="card-title">Budget</div>
     </div>
     <div class="row">
       <div>
@@ -389,7 +386,6 @@
       </div>
       <div style="text-align:right;">
         <strong id="ov-fixed-mo">₱0.00 / mo</strong>
-        <div class="sub" id="ov-fixed-day">₱0.00 / workday</div>
       </div>
     </div>
     <div class="row">
@@ -399,7 +395,6 @@
       </div>
       <div style="text-align:right;">
         <strong class="green" id="ov-sav-mo">₱0.00 / mo</strong>
-        <div class="sub" id="ov-sav-day">₱0.00 / workday</div>
       </div>
     </div>
     <div class="row">
@@ -409,7 +404,6 @@
       </div>
       <div style="text-align:right;">
         <strong id="ov-need-mo">₱0.00 / mo</strong>
-        <div class="sub" id="ov-need-day">₱0.00 / workday</div>
       </div>
     </div>
     <div class="row">
@@ -419,7 +413,6 @@
       </div>
       <div style="text-align:right;">
         <strong id="ov-want-mo">₱0.00 / mo</strong>
-        <div class="sub" id="ov-want-day">₱0.00 / workday</div>
       </div>
     </div>
   </div>
@@ -527,28 +520,25 @@
 <section id="view-loans" class="hidden">
   <div class="card">
     <div class="card-header">
-      <div class="card-title">Monthly Bills, Goals & Loans</div>
+      <div class="card-title">Bills & Loans</div>
       <span class="sub" id="loans-total-badge">₱0.00/mo</span>
     </div>
-    <p class="sub" style="margin-top:0; margin-bottom:10px;">
-      Mark a loan <strong>Paid Off Forever</strong> once settled in full—its monthly deduction drops to ₱0 and immediately boosts your daily 50/30/20 allowances.
-    </p>
     <div id="loans-list"></div>
   </div>
 
   <div class="card">
-    <div class="card-title">Add New Bill, Goal, or Loan</div>
+    <div class="card-title">Add New</div>
     <div class="form-grid">
       <div>
-        <label>Commitment Name</label>
-        <input type="text" id="bill-name" placeholder="e.g. Installment / Savings Goal" />
+        <label>Name</label>
+        <input type="text" id="bill-name" placeholder="e.g. Phone bill" />
       </div>
       <div>
         <label>Monthly Amount (₱)</label>
         <input type="number" step="0.01" id="bill-amt" placeholder="0.00" />
       </div>
       <div>
-        <label>Paid This Month (₱, deducted from cash)</label>
+        <label>Paid This Month (₱)</label>
         <input type="number" step="0.01" id="bill-paid" placeholder="0.00" />
       </div>
       <div>
@@ -559,7 +549,7 @@
         </select>
       </div>
     </div>
-    <button class="btn-primary" onclick="addBill()">+ Add Commitment</button>
+    <button class="btn-primary" onclick="addBill()">+ Add</button>
   </div>
 </section>
 
@@ -622,9 +612,6 @@
       <h3 style="margin:0; font-size:16px;">Add Money / Income</h3>
       <button class="btn-icon" onclick="closeModal('add-money-modal')">✕</button>
     </div>
-    <p class="sub" style="margin-top:0; margin-bottom:10px;">
-      Add any custom peso amount (allowance, side hustle, bonus, gift, or irregular pay) or tap a quick preset below.
-    </p>
     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
       <button class="btn-secondary" id="preset-1d" onclick="fillPresetMoney(1)">+1 Workday</button>
       <button class="btn-secondary" id="preset-5d" onclick="fillPresetMoney(5)">+5 Workdays</button>
@@ -656,9 +643,6 @@
       <h3 style="margin:0; font-size:16px;">Money History</h3>
       <button class="btn-icon" onclick="closeModal('income-history-modal')">✕</button>
     </div>
-    <p class="sub" style="margin-top:0; margin-bottom:10px;">
-      Deposits, cash corrections and bill payments. Deleting an entry reverses its effect on your cash.
-    </p>
     <div id="income-history-list"></div>
     <div class="card-title" style="margin-top:14px;">Bill Payments</div>
     <div id="payment-history-list"></div>
@@ -669,12 +653,9 @@
 <div class="modal-backdrop hidden" id="wallet-modal">
   <div class="modal">
     <div class="card-header">
-      <h3 style="margin:0; font-size:16px;">Customize Smart Wallet Router</h3>
+      <h3 style="margin:0; font-size:16px;">Edit Wallets</h3>
       <button class="btn-icon" onclick="closeModal('wallet-modal')">✕</button>
     </div>
-    <p class="sub" style="margin-top:0; margin-bottom:12px;">
-      Configure where your money is parked. Each wallet shows a planning amount based on its rule, not its real bank balance.
-    </p>
     <div id="wallet-editor-list"></div>
     <button class="btn-secondary" style="width:100%; margin-bottom:10px;" onclick="addWalletSlot()">+ Add Another Bank / Wallet</button>
     <button class="btn-primary" onclick="saveWallets()">Save Wallet Setup</button>
@@ -722,7 +703,7 @@
 <div class="modal-backdrop hidden" id="edit-bill-modal">
   <div class="modal">
     <div class="card-header">
-      <h3 style="margin:0; font-size:16px;">Edit Commitment</h3>
+      <h3 style="margin:0; font-size:16px;">Edit Bill</h3>
       <button class="btn-icon" onclick="closeModal('edit-bill-modal')">✕</button>
     </div>
     <input type="hidden" id="edit-bill-id" />
@@ -747,7 +728,7 @@
         </select>
       </div>
     </div>
-    <button class="btn-primary" onclick="saveEditBill()">Save Commitment</button>
+    <button class="btn-primary" onclick="saveEditBill()">Save</button>
   </div>
 </div>
 
@@ -758,9 +739,7 @@
       <h3 style="margin:0; font-size:16px;">Share Tracker</h3>
       <button class="btn-icon" onclick="closeModal('share-modal')">✕</button>
     </div>
-    <p class="sub" style="margin-top:0;">
-      <strong>Privacy Safe:</strong> Your personal balances stay on your own device unless you specifically share a Snapshot link.
-    </p>
+    <p class="sub" style="margin-top:0;">Snapshot links contain your data. Keep them private.</p>
     <div style="display:flex; flex-direction:column; gap:8px;">
       <button class="btn-primary" onclick="copyBlankLink()">Copy Blank Template Link (For Friends)</button>
       <button class="btn-secondary" onclick="copySnapshotLink()">Copy Snapshot Link (Transfer My Data)</button>
@@ -772,7 +751,7 @@
 <div class="modal-backdrop hidden" id="backup-modal">
   <div class="modal">
     <div class="card-header">
-      <h3 style="margin:0; font-size:16px;">Backup, Export & Month Cycle</h3>
+      <h3 style="margin:0; font-size:16px;">Backup</h3>
       <button class="btn-icon" onclick="closeModal('backup-modal')">✕</button>
     </div>
     <div style="display:flex; flex-direction:column; gap:8px;">
@@ -781,7 +760,7 @@
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBackupJSON(event)" />
       <button class="btn-secondary" onclick="copyNotesSummary()">Copy Text Summary (For Notes App)</button>
       <button class="btn-secondary" onclick="archiveAndStartNewMonth()">Start Next Month Cycle</button>
-      <button class="btn-secondary" onclick="downloadSafetyCopy()">Download Safety Copy (Before Last Replace/Upgrade)</button>
+      <button class="btn-secondary" onclick="downloadSafetyCopy()">Download Safety Copy</button>
       <button class="btn-secondary" style="color:var(--red);" onclick="resetAllBlank()">Clear All Data (Reset to ₱0.00)</button>
     </div>
   </div>
@@ -1184,7 +1163,6 @@ function render() {
     pager.classList.add("hidden");
   }
 
-  document.getElementById("hdr-sub").textContent = `${state.pctSav}/${state.pctNeed}/${state.pctWant} Split • ${fmt(state.dailyRate)}/day • ${state.workDaysPerMonth} workdays/mo`;
   document.getElementById("ov-earned").textContent = fmt(state.earned);
   const depositCount = state.incomeLogs.length;
   document.getElementById("ov-workdays-logged").textContent = depositCount > 0
@@ -1201,21 +1179,17 @@ function render() {
 
   document.getElementById("ov-bills-count").textContent = `${activeBills.length} active commitments`;
   document.getElementById("ov-fixed-mo").textContent = `${fmt(activeMonthlyBills)} / mo`;
-  document.getElementById("ov-fixed-day").textContent = `${fmt(fixedDay)} / workday`;
 
   document.getElementById("lbl-sav-pct").textContent = `${state.pctSav}% SAVINGS`;
   document.getElementById("ov-sav-mo").textContent = `${fmt(savMo)} / mo`;
-  document.getElementById("ov-sav-day").textContent = `${fmt(savDay)} / workday`;
   document.getElementById("ov-sav-5d").textContent = `${fmt(savDay * state.batchDays)} per ${state.batchDays} workdays`;
 
   document.getElementById("lbl-need-pct").textContent = `${state.pctNeed}% NEEDS`;
   document.getElementById("ov-need-mo").textContent = `${fmt(needMo)} / mo`;
-  document.getElementById("ov-need-day").textContent = `${fmt(needDay)} / workday`;
   document.getElementById("ov-need-5d").textContent = `${fmt(needDay * state.batchDays)} per ${state.batchDays} workdays`;
 
   document.getElementById("lbl-want-pct").textContent = `${state.pctWant}% WANTS`;
   document.getElementById("ov-want-mo").textContent = `${fmt(wantMo)} / mo`;
-  document.getElementById("ov-want-day").textContent = `${fmt(wantDay)} / workday`;
   document.getElementById("ov-want-5d").textContent = `${fmt(wantDay * state.batchDays)} per ${state.batchDays} workdays`;
 
   document.getElementById("daily-cap-badge").textContent = `Cap: ${fmt(dailySpendCap)}/workday`;
@@ -1264,8 +1238,6 @@ function render() {
     div.innerHTML = `
       <div>
         <div style="font-weight:700; font-size:13.5px;"><span class="dot" style="background:${c};"></span>${esc(w.name)}</div>
-        <div class="sub">${esc(w.role)}</div>
-        <div class="sub" style="margin-top:2px;">${subText}</div>
       </div>
       <div style="text-align:right; font-weight:750; font-size:15px; color:${c}; white-space:nowrap;">
         ${mainVal}
