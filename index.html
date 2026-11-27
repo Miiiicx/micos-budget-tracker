@@ -284,6 +284,11 @@
     max-height: 88vh;
     overflow-y: auto;
   }
+  .today-box { display:flex; justify-content:space-between; gap:10px; background:var(--card-2); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:12px; }
+  .today-box strong { display:block; font-size:20px; }
+  .fab { position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:40; border:0; border-radius:999px; padding:14px 20px; font-weight:700; font-size:14px; background:#2563eb; color:#fff; box-shadow:0 6px 18px rgba(0,0,0,.45); }
+  body { padding-bottom:90px !important; }
+  .day-row { cursor:pointer; }
   .toast {
     position: fixed;
     bottom: 20px;
@@ -422,35 +427,42 @@
 <section id="view-daily" class="hidden">
   <div class="card">
     <div class="card-header">
-      <div class="card-title">Log Daily Expense</div>
+      <div class="card-title">Add Expense</div>
       <span class="sub" id="daily-cap-badge">Cap: ₱0.00/workday</span>
     </div>
-    <div class="form-grid">
-      <div>
-        <label>Date</label>
-        <input type="date" id="log-date" />
-      </div>
-      <div>
-        <label>Day Status</label>
-        <select id="log-type">
-          <option value="work">Workday (+Daily Cap)</option>
-          <option value="off">Rest / Off Day (₱0 Cap)</option>
-        </select>
-      </div>
-      <div>
-        <label>Needs Spent (₱)</label>
-        <input type="number" step="0.01" id="log-needs" placeholder="0.00" />
-      </div>
-      <div>
-        <label>Wants Spent (₱)</label>
-        <input type="number" step="0.01" id="log-wants" placeholder="0.00" />
-      </div>
+    <div class="today-box">
+      <div>Spent today<strong id="today-spent">₱0.00</strong></div>
+      <div style="text-align:right;"><span id="today-left-label">Left today</span><strong id="today-left">₱0.00</strong></div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label>Amount (₱)</label>
+      <input type="number" step="0.01" inputmode="decimal" id="log-amt" placeholder="0.00" />
     </div>
     <div style="margin-bottom:10px;">
       <label>Note (Optional)</label>
-      <input type="text" id="log-note" placeholder="e.g. Lunch, commute, coffee" />
+      <input type="text" id="log-note" placeholder="e.g. Lunch, fare, coffee" />
     </div>
-    <button class="btn-primary" onclick="addLog()">+ Add Entry</button>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <button class="btn-primary" onclick="addLog('needs')">+ Need</button>
+      <button class="btn-primary" style="background:#b45309;" onclick="addLog('wants')">+ Want</button>
+    </div>
+    <details>
+      <summary class="sub">Date and day status</summary>
+      <div class="form-grid" style="margin-top:8px;">
+        <div>
+          <label>Date</label>
+          <input type="date" id="log-date" onchange="pickLogDate()" />
+        </div>
+        <div>
+          <label>Day Status (whole day)</label>
+          <select id="log-type" onchange="changeDayStatus()">
+            <option value="work">Workday (+Daily Cap)</option>
+            <option value="off">Rest / Off Day (₱0 Cap)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-secondary" onclick="addLog(null)">Save Day With No Spending</button>
+    </details>
   </div>
 
   <div class="card">
@@ -502,7 +514,6 @@
             <th class="num">Needs</th>
             <th class="num">Wants</th>
             <th class="num">Left (+/-)</th>
-            <th class="num">Actions</th>
           </tr>
         </thead>
         <tbody id="log-tbody"></tbody>
@@ -676,7 +687,7 @@
         <input type="date" id="edit-log-date" />
       </div>
       <div>
-        <label>Day Status</label>
+        <label>Day Status (whole day)</label>
         <select id="edit-log-type">
           <option value="work">Workday (+Daily Cap)</option>
           <option value="off">Rest / Off Day (₱0 Cap)</option>
@@ -765,6 +776,8 @@
     </div>
   </div>
 </div>
+
+<button class="fab" id="fab-expense" onclick="quickExpense()">+ Expense</button>
 
 <div class="toast" id="toast">Done!</div>
 
@@ -1005,6 +1018,7 @@ function showToast(msg) {
 }
 
 function switchTab(name) {
+  document.getElementById("fab-expense").classList.toggle("hidden", name === "daily");
   ["overview", "daily", "loans", "settings"].forEach(t => {
     document.getElementById("view-" + t).classList.toggle("hidden", t !== name);
     document.getElementById("tab-" + t).classList.toggle("active", t === name);
@@ -1058,11 +1072,12 @@ function render() {
   const dailySpendCap = needDay + wantDay;
 
   let allNeeds = 0, allWants = 0, allWorkCount = 0, earnedCap = 0;
-  state.logs.forEach(item => {
-    allNeeds += Number(item.needs);
-    allWants += Number(item.wants);
-    if (item.type === "work") allWorkCount++;
-    earnedCap += item.cap;
+  const days = groupDays(state.logs);
+  days.forEach(day => {
+    allNeeds += day.needs;
+    allWants += day.wants;
+    if (day.type === "work") allWorkCount++;
+    earnedCap += day.cap;
   });
 
   const totDailySpent = allNeeds + allWants;
@@ -1077,9 +1092,9 @@ function render() {
   const monthSelect = document.getElementById("filter-month");
   const prevMonthVal = monthSelect.value;
   const monthSet = new Set();
-  state.logs.forEach(l => monthSet.add(getMonthKey(l.date)));
+  days.forEach(l => monthSet.add(getMonthKey(l.date)));
   const sortedMonths = Array.from(monthSet).sort().reverse();
-  monthSelect.innerHTML = `<option value="all">All Months (${state.logs.length})</option>` +
+  monthSelect.innerHTML = `<option value="all">All Months (${days.length})</option>` +
     sortedMonths.map(m => `<option value="${m}">${formatMonthLabel(m)}</option>`).join("");
   if (sortedMonths.includes(prevMonthVal) || prevMonthVal === "all") {
     monthSelect.value = prevMonthVal;
@@ -1090,14 +1105,14 @@ function render() {
   const sortMode = document.getElementById("sort-logs").value;
   const searchQ = document.getElementById("search-logs").value.trim().toLowerCase();
 
-  let filteredLogs = state.logs.filter(item => {
+  let filteredLogs = days.filter(item => {
     if (fMonth !== "all" && getMonthKey(item.date) !== fMonth) return false;
     if (fType === "work" && item.type !== "work") return false;
     if (fType === "off" && item.type !== "off") return false;
     const cap = item.cap;
     const spent = Number(item.needs) + Number(item.wants);
     if (fType === "over" && spent <= cap) return false;
-    if (searchQ && !(`${showDate(item.date)} ${item.date} ${item.note || ""}`.toLowerCase().includes(searchQ))) return false;
+    if (searchQ && !(`${showDate(item.date)} ${item.date} ${item.items.map(x => x.note).join(" ")}`.toLowerCase().includes(searchQ))) return false;
     return true;
   });
 
@@ -1128,31 +1143,47 @@ function render() {
   const tbody = document.getElementById("log-tbody");
   tbody.innerHTML = "";
   pageItems.forEach(item => {
+    const open = openDays.has(item.date);
     const cap = item.cap;
     const diff = cap - (Number(item.needs) + Number(item.wants));
     const tr = document.createElement("tr");
+    tr.className = "day-row";
+    tr.onclick = () => toggleDay(item.date);
     tr.innerHTML = `
       <td>
-        <strong>${esc(showDate(item.date))}</strong>
+        <strong>${open ? "▾" : "▸"} ${esc(showDate(item.date))}</strong>
         ${item.type === "off" ? '<span class="pill pill-amber">Off</span>' : ''}
-        ${item.note ? `<div class="sub">${esc(item.note)}</div>` : ''}
+        <div class="sub">${item.items.length} ${item.items.length === 1 ? "entry" : "entries"}</div>
       </td>
       <td class="num">${fmt(item.needs)}</td>
       <td class="num">${fmt(item.wants)}</td>
       <td class="num ${diff >= 0 ? 'green' : 'red'}">${diff >= 0 ? '+' : ''}${fmt(diff)}</td>
-      <td class="num" style="white-space:nowrap;">
-        <button class="btn-icon" onclick="openEditLog(${item.id})">✎</button>
-        <button class="btn-icon" onclick="delLog(${item.id})">×</button>
-      </td>
     `;
     tbody.appendChild(tr);
+    if (!open) return;
+    item.items.slice().sort((a, b) => b.id - a.id).forEach(x => {
+      const parts = [];
+      if (x.needs) parts.push(`Need ${fmt(x.needs)}`);
+      if (x.wants) parts.push(`Want ${fmt(x.wants)}`);
+      const sub = document.createElement("tr");
+      sub.innerHTML = `
+        <td colspan="3" style="padding-left:22px;">
+          ${esc(x.note || "No note")}
+          <div class="sub">${parts.join(" • ") || "No spending"}</div>
+        </td>
+        <td class="num" style="white-space:nowrap;">
+          <button class="btn-icon" onclick="openEditLog(${x.id})">✎</button>
+          <button class="btn-icon" onclick="delLog(${x.id})">×</button>
+        </td>`;
+      tbody.appendChild(sub);
+    });
   });
 
   if (filteredLogs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">No matching entries found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">No matching entries found.</td></tr>`;
   }
 
-  document.getElementById("log-count-badge").textContent = `${filteredLogs.length} entries`;
+  document.getElementById("log-count-badge").textContent = `${filteredLogs.length} ${filteredLogs.length === 1 ? "day" : "days"}`;
   const pager = document.getElementById("log-pager");
   if (filteredLogs.length > PAGE_SIZE) {
     pager.classList.remove("hidden");
@@ -1192,12 +1223,21 @@ function render() {
   document.getElementById("ov-want-mo").textContent = `${fmt(wantMo)} / mo`;
   document.getElementById("ov-want-5d").textContent = `${fmt(wantDay * state.batchDays)} per ${state.batchDays} workdays`;
 
-  document.getElementById("daily-cap-badge").textContent = `Cap: ${fmt(dailySpendCap)}/workday`;
   document.getElementById("sum-needs").textContent = fmt(filtNeeds);
   document.getElementById("sum-wants").textContent = fmt(filtWants);
   const sumLeftEl = document.getElementById("sum-left");
   sumLeftEl.textContent = `${filtRollover >= 0 ? '+' : ''}${fmt(filtRollover)}`;
   sumLeftEl.className = filtRollover >= 0 ? "green" : "red";
+
+  const today = days.find(d => d.date === todayISO());
+  const todaySpent = today ? today.needs + today.wants : 0;
+  const todayLeft = (today ? today.cap : dailySpendCap) - todaySpent;
+  document.getElementById("today-spent").textContent = fmt(todaySpent);
+  document.getElementById("today-left-label").textContent = todayLeft >= 0 ? "Left today" : "Over today";
+  document.getElementById("today-left").textContent = fmt(Math.abs(todayLeft));
+  document.getElementById("today-left").className = todayLeft >= 0 ? "green" : "red";
+  document.getElementById("daily-cap-badge").textContent = `Today's cap: ${fmt(today ? today.cap : dailySpendCap)}`;
+  syncLogForm();
 
   const walletContainer = document.getElementById("wallet-cards");
   walletContainer.innerHTML = "";
@@ -1429,21 +1469,90 @@ function applyPreset(s, n, w) {
   showToast(`Applied ${s}/${n}/${w} split!`);
 }
 
-function addLog() {
-  const date = document.getElementById("log-date").value.trim() || todayISO();
+// Combines entries by date. A day has one status and ONE cap, however many entries it has.
+function groupDays(logs) {
+  const map = new Map();
+  logs.slice().sort((a, b) => a.id - b.id).forEach(l => {
+    if (!map.has(l.date)) map.set(l.date, { date: l.date, id: l.id, type: "off", cap: 0, needs: 0, wants: 0, items: [] });
+    const day = map.get(l.date);
+    day.needs += l.needs;
+    day.wants += l.wants;
+    day.id = l.id;
+    day.items.push(l);
+    if (l.type === "work" && day.type !== "work") { day.type = "work"; day.cap = l.cap; }
+  });
+  return Array.from(map.values());
+}
+
+const openDays = new Set();
+function toggleDay(date) {
+  openDays.has(date) ? openDays.delete(date) : openDays.add(date);
+  render();
+}
+
+function setDayStatus(date, type) {
+  const day = groupDays(state.logs).find(d => d.date === date);
+  if (!day) return;
+  const cap = type === "off" ? 0 : (day.type === "work" ? day.cap : currentCap(state));
+  day.items.forEach(l => { l.type = type; l.cap = cap; });
+}
+
+// The form follows today's date unless another date was picked.
+let pickedDate = "";
+let formDate = "";
+function syncLogForm() {
+  const date = pickedDate || todayISO();
+  const input = document.getElementById("log-date");
+  const select = document.getElementById("log-type");
+  input.value = date;
+  const day = groupDays(state.logs).find(d => d.date === date);
+  if (day) select.value = day.type;
+  else if (formDate !== date) select.value = "work";
+  formDate = date;
+}
+
+function pickLogDate() {
+  const v = document.getElementById("log-date").value;
+  pickedDate = v === todayISO() ? "" : v;
+  syncLogForm();
+}
+
+function changeDayStatus() {
+  const date = pickedDate || todayISO();
+  if (!state.logs.some(l => l.date === date)) return;
+  setDayStatus(date, document.getElementById("log-type").value);
+  saveState(); render();
+  showToast("Day status updated");
+}
+
+function quickExpense() {
+  pickedDate = "";
+  switchTab("daily");
+  render();
+  window.scrollTo(0, 0);
+  document.getElementById("log-amt").focus();
+}
+
+function addLog(kind) {
+  const date = pickedDate || todayISO();
   const type = document.getElementById("log-type").value;
-  const needs = parseFloat(document.getElementById("log-needs").value) || 0;
-  const wants = parseFloat(document.getElementById("log-wants").value) || 0;
+  const amount = kind ? Number(document.getElementById("log-amt").value) : 0;
   const note = document.getElementById("log-note").value.trim();
-  if (needs < 0 || wants < 0) { showToast("Amounts can't be negative"); return; }
-  state.logs.push({ id: uid(), date, type, needs, wants, note, cap: type === "work" ? currentCap(state) : 0 });
-  document.getElementById("log-date").value = "";
-  document.getElementById("log-needs").value = "";
-  document.getElementById("log-wants").value = "";
-  document.getElementById("log-note").value = "";
+  if (kind && !(Number.isFinite(amount) && amount > 0)) { showToast("Enter an amount"); return; }
+  const day = groupDays(state.logs).find(d => d.date === date);
+  if (!kind && day) { showToast("This day is already logged"); return; }
+  const cap = type === "off" ? 0 : (day && day.type === "work" ? day.cap : currentCap(state));
+  state.logs.push({ id: uid(), date, type, needs: kind === "needs" ? amount : 0, wants: kind === "wants" ? amount : 0, note, cap });
+  setDayStatus(date, type);
+  if (kind) {
+    document.getElementById("log-amt").value = "";
+    document.getElementById("log-note").value = "";
+  }
+  const label = pickedDate ? showDate(date) : "today";
+  pickedDate = "";
   currentPage = 1;
   saveState(); render();
-  showToast("Day logged!");
+  showToast(kind ? `${fmt(amount)} added to ${label}` : `Saved ${label}`);
 }
 
 function openEditLog(id) {
@@ -1462,10 +1571,19 @@ function saveEditLog() {
   const id = Number(document.getElementById("edit-log-id").value);
   const item = state.logs.find(l => l.id === id);
   if (!item) return;
-  item.date = document.getElementById("edit-log-date").value || item.date;
+  const newDate = document.getElementById("edit-log-date").value || item.date;
   const newType = document.getElementById("edit-log-type").value;
-  if (newType !== item.type) item.cap = newType === "work" ? currentCap(state) : 0;
-  item.type = newType;
+  const oldType = item.type;
+  const target = groupDays(state.logs.filter(l => l !== item)).find(d => d.date === newDate);
+  // Moving to a logged day uses that day's status unless you changed it here.
+  const type = target && newType === oldType ? target.type : newType;
+  if (target) item.cap = target.type === "work" ? target.cap : 0;
+  if (type === "work" && (target ? target.type : oldType) !== "work") item.cap = currentCap(state);
+  if (type === "off") item.cap = 0;
+  const cap = item.cap;
+  item.date = newDate;
+  item.type = type;
+  state.logs.filter(l => l.date === newDate).forEach(l => { l.type = type; l.cap = cap; });
   item.needs = parseFloat(document.getElementById("edit-log-needs").value) || 0;
   item.wants = parseFloat(document.getElementById("edit-log-wants").value) || 0;
   item.note = document.getElementById("edit-log-note").value.trim();
@@ -1475,7 +1593,7 @@ function saveEditLog() {
 }
 
 function delLog(id) {
-  if (!confirm("Delete this daily entry?")) return;
+  if (!confirm("Delete this entry?")) return;
   state.logs = state.logs.filter(l => l.id !== id);
   saveState(); render();
 }
@@ -1691,7 +1809,7 @@ Split: ${state.pctSav}/${state.pctNeed}/${state.pctWant}
 
 DAILY LOGS:
 `;
-  state.logs.forEach(l => { txt += `${showDate(l.date)}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs} | Wants: ₱${l.wants}
+  groupDays(state.logs).sort((a, b) => b.date.localeCompare(a.date)).forEach(l => { txt += `${showDate(l.date)}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs.toFixed(2)} | Wants: ₱${l.wants.toFixed(2)}
 `; });
   txt += `
 BILLS & LOANS:
@@ -1730,6 +1848,8 @@ if ("serviceWorker" in navigator && window.location.protocol.startsWith("http"))
 }
 
 checkStorageHealth();
+// Refresh "today" when the app is reopened on a new day.
+document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 if (!loadError) saveState();
 render();
 </script>
