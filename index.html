@@ -299,6 +299,10 @@
   .goal-add .btn-primary { width:auto; }
   .suggest { display:block; width:100%; text-align:left; margin-top:5px; padding:8px 10px; border-radius:9px; border:1px solid rgba(255,255,255,0.1); background:var(--card-2); color:inherit; font:inherit; font-size:12px; cursor:pointer; }
   .suggest span { display:block; color:var(--muted); margin-top:2px; }
+  .plan-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px; }
+  .plan-grid div { background:var(--card-2); border-radius:9px; padding:7px 10px; }
+  .plan-grid strong { display:block; font-size:14px; }
+  .goal-actions .active-panel { border-color:#2563eb !important; background:#2563eb; color:#fff; }
   .goal-actions { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
   .toast {
     position: fixed;
@@ -975,7 +979,12 @@ function normalizeState(input) {
   }
   out.goals = list(d.goals).map(g => ({
     id: id(g.id), name: txt(g.name), target: pos(g.target),
-    adds: list(g.adds).map(a => ({ id: id(a.id), date: toISO(a.date), amount: pos(a.amount), from: pick(a.from, ["savings", "needs", "wants"], "savings") })),
+    adds: list(g.adds).map(a => ({ id: id(a.id), date: toISO(a.date), amount: pos(a.amount), from: pick(a.from, ["savings", "needs", "wants", "gift"], "savings"), incomeId: pos(a.incomeId) })),
+    plan: g.plan && typeof g.plan === "object" ? {
+      mode: pick(g.plan.mode, ["date", "pace"], "pace"), date: toISO(g.plan.date), amount: pos(g.plan.amount),
+      unit: pick(g.plan.unit, ["workday", "week", "month"], "workday"),
+      split: pick(g.plan.split, ["mine", "half", "savings", "wants", "needs"], "mine")
+    } : null,
     bought: g.bought && typeof g.bought === "object" ? { amount: pos(g.bought.amount), date: toISO(g.bought.date) } : null
   }));
   const fallbackCap = currentCap(out);
@@ -1536,7 +1545,14 @@ function saveEditIncome() {
   if (!Number.isFinite(amount) || amount === 0 || (item.amount > 0 && amount < 0)) { showToast("Enter a valid amount"); return; }
   if (amount !== item.amount && !confirm(`Change ${fmt(item.amount)} to ${fmt(amount)}? Your cash will be recalculated.`)) return;
   item.amount = amount;
+  // A linked gift follows the edited amount, without going past the goal's price.
+  state.goals.forEach(g => g.adds.forEach(a => {
+    if (a.incomeId !== id) return;
+    const others = goalSaved(g) - a.amount;
+    a.amount = Math.round(Math.max(0, Math.min(amount, g.target - others)) * 100) / 100;
+  }));
   item.date = document.getElementById("edit-income-date").value || item.date;
+  state.goals.forEach(g => g.adds.forEach(a => { if (a.incomeId === id) a.date = item.date; }));
   item.note = document.getElementById("edit-income-note").value.trim() || item.note;
   saveState(); render();
   closeEditIncome();
@@ -1545,8 +1561,9 @@ function saveEditIncome() {
 
 function delIncomeLog(id) {
   const target = state.incomeLogs.find(x => x.id === id);
-  if (!target || !confirm(`Delete "${target.note}" (${fmt(target.amount)})? Your cash will be recalculated.`)) return;
+  if (!target || !confirm(`Delete "${target.note}" (${fmt(target.amount)})? Your cash will be recalculated.${state.goals.some(g => g.adds.some(a => a.incomeId === id)) ? " It will also be removed from its goal." : ""}`)) return;
   state.incomeLogs = state.incomeLogs.filter(x => x.id !== id);
+  state.goals.forEach(g => { g.adds = g.adds.filter(a => a.incomeId !== id); });
   saveState(); render(); renderIncomeHistory();
   showToast("Entry removed");
 }
@@ -1578,19 +1595,194 @@ function applyPreset(s, n, w) {
   showToast(`Applied ${s}/${n}/${w} split!`);
 }
 
-const SOURCE_NAMES = { savings: "Savings", needs: "Needs", wants: "Wants" };
+const SOURCE_NAMES = { savings: "Savings", needs: "Needs", wants: "Wants", gift: "Gift" };
 function goalSaved(g) { return g.adds.reduce((t, a) => t + a.amount, 0); }
 function goalsReserved() { return state.goals.filter(g => !g.bought).reduce((t, g) => t + goalSaved(g), 0); }
 function goalFromAllowance(date) {
-  return state.goals.reduce((t, g) => t + g.adds.filter(a => a.date === date && a.from !== "savings").reduce((n, a) => n + a.amount, 0), 0);
+  return state.goals.reduce((t, g) => t + g.adds.filter(a => a.date === date && (a.from === "needs" || a.from === "wants")).reduce((n, a) => n + a.amount, 0), 0);
 }
 
-const openGoals = new Set();
+const goalPanel = {}; // which section is open on each goal
+
+const DAYS_PER_MONTH = 365.25 / 12;
+const roundUp = n => Math.ceil(n * 100 - 1e-6) / 100;
+function daysUntil(iso) { return Math.round((Date.parse(iso) - Date.parse(todayISO())) / 86400000); }
+function dateAfter(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+// Estimates assume workdays are spread evenly across the calendar. Today is not counted.
+function planNumbers(g) {
+  const plan = g.plan;
+  const left = Math.round(Math.max(0, g.target - goalSaved(g)) * 100) / 100;
+  if (!plan || g.bought || left <= 0) return null;
+  const workRatio = Math.min(1, state.workDaysPerMonth / DAYS_PER_MONTH); // workdays per calendar day
+  const perWeekDays = workRatio * 7;
+  if (plan.mode === "date") {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(plan.date)) return null;
+    const days = daysUntil(plan.date);
+    if (days <= 0) return { left, overdue: true };
+    const workdays = Math.max(1, Math.floor(days * workRatio));
+    return {
+      left, days, workdays,
+      perDay: Math.min(left, roundUp(left / days)),
+      perWorkday: Math.min(left, roundUp(left / workdays)),
+      perWeek: Math.min(left, roundUp(left / days * 7)),
+      perMonth: Math.min(left, roundUp(left / days * DAYS_PER_MONTH))
+    };
+  }
+  if (!(plan.amount > 0)) return null;
+  const rate = plan.unit === "workday" ? plan.amount : plan.unit === "week" ? plan.amount / perWeekDays : plan.amount / state.workDaysPerMonth;
+  const count = Math.ceil(left / plan.amount - 1e-9); // number of times you set money aside
+  const days = Math.ceil(plan.unit === "workday" ? count / workRatio : plan.unit === "week" ? count * 7 : count * DAYS_PER_MONTH);
+  return {
+    left, days, count,
+    perDay: Math.min(left, rate * workRatio),
+    perWorkday: Math.min(left, roundUp(rate)),
+    perWeek: Math.min(left, rate * perWeekDays),
+    perMonth: Math.min(left, rate * state.workDaysPerMonth)
+  };
+}
+
+function dailyGuides() {
+  const bills = state.bills.filter(b => b.status === "active").reduce((t, b) => t + b.monthly, 0);
+  const base = Math.max(0, state.dailyRate * state.workDaysPerMonth - bills) / state.workDaysPerMonth / 100;
+  return { savings: base * state.pctSav, needs: base * state.pctNeed, wants: base * state.pctWant };
+}
+
+function planParts(amount, key) {
+  const option = suggestions().find(o => o.key === key) || suggestions()[0];
+  return option ? splitAmount(amount, option.weights) : [];
+}
+
+function planSummary(g) {
+  const n = planNumbers(g);
+  if (!n) return "";
+  if (n.overdue) return "📅 Target date reached. Update your plan.";
+  if (g.plan.mode === "date") return `📅 ${fmt(n.perWorkday)} per workday to finish by ${showDate(g.plan.date)}`;
+  return `📅 About ${plural(n.days, "day")} • around ${dateAfter(n.days)}`;
+}
+
+function planResultHTML(g) {
+  const n = planNumbers(g);
+  if (!n) return '<div class="sub">Pick a date or enter an amount to see your plan.</div>';
+  if (n.overdue) return '<div class="sub red">Choose a date after today.</div>';
+  const unitName = { workday: "workday", week: "week", month: "month" };
+  const heading = g.plan.mode === "date"
+    ? `<strong>${plural(n.days, "day")} left</strong> (about ${plural(n.workdays, "workday")})`
+    : `<strong>About ${plural(n.days, "day")}</strong> (${plural(n.count, unitName[g.plan.unit])}) • around ${dateAfter(n.days)}`;
+  const parts = planParts(n.perWorkday, g.plan.split);
+  const guides = dailyGuides();
+  const over = parts.filter(p => p.amount > guides[p.from] + 0.005).map(p => `${SOURCE_NAMES[p.from]} (guide ${fmt(guides[p.from])})`);
+  const fromDaily = parts.filter(p => p.from !== "savings").reduce((t, p) => t + p.amount, 0);
+  const cap = currentCap(state);
+  return `
+    <div style="font-size:13px; margin-bottom:6px;">${heading}</div>
+    <div class="plan-grid">
+      <div>Per day<strong>${fmt(n.perDay)}</strong></div>
+      <div>Per workday<strong>${fmt(n.perWorkday)}</strong></div>
+      <div>Per week<strong>${fmt(n.perWeek)}</strong></div>
+      <div>Per month<strong>${fmt(n.perMonth)}</strong></div>
+    </div>
+    <div class="sub" style="margin-top:8px;">Each workday: ${describeParts(parts)}</div>
+    ${fromDaily > 0 ? `<div class="sub">Daily cap left after this: ${cap >= fromDaily ? fmt(cap - fromDaily) : `short by ${fmt(fromDaily - cap)}`}</div>` : ""}
+    ${over.length ? `<div class="sub red">⚠ Above your daily ${over.join(", ")}</div>` : ""}
+    <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="saveShare(${g.id})">Set Aside One Workday's Share Now</button>`;
+}
+
+// Warns when all planned goals together ask for more than a workday's budget guides.
+function combinedPlanNote() {
+  const plans = state.goals.map(g => ({ g, n: planNumbers(g) })).filter(x => x.n && !x.n.overdue);
+  if (plans.length < 2) return "";
+  const total = { savings: 0, needs: 0, wants: 0 };
+  plans.forEach(x => planParts(x.n.perWorkday, x.g.plan.split).forEach(p => total[p.from] += p.amount));
+  const guides = dailyGuides();
+  const over = Object.keys(total).some(k => total[k] > guides[k] + 0.005);
+  const sum = total.savings + total.needs + total.wants;
+  return `<div class="sub ${over ? "red" : ""}" style="padding:4px 0;">All ${plans.length} plans: ${fmt(sum)} per workday${over ? ". ⚠ Together they're above your daily guides." : ""}</div>`;
+}
+
+function planFormHTML(g) {
+  const p = g.plan || { mode: "pace", date: "", amount: 0, unit: "workday", split: "mine" };
+  const opt = (value, label, current) => `<option value="${value}" ${value === current ? "selected" : ""}>${label}</option>`;
+  return `
+    <div class="form-grid">
+      <div><label>Plan by</label><select onchange="setPlan(${g.id}, 'mode', this.value)">
+        ${opt("pace", "Amount I can save", p.mode)}${opt("date", "Target date", p.mode)}</select></div>
+      <div><label>Take it from</label><select onchange="setPlan(${g.id}, 'split', this.value)">
+        ${suggestions().map(o => opt(o.key, o.label, p.split)).join("")}</select></div>
+      ${p.mode === "date" ? `
+      <div><label>I want it by</label><input type="date" value="${esc(p.date)}" onchange="setPlan(${g.id}, 'date', this.value)" /></div>` : `
+      <div><label>I can save (₱)</label><input type="number" step="0.01" inputmode="decimal" value="${p.amount || ""}" onchange="setPlan(${g.id}, 'amount', this.value)" /></div>
+      <div><label>Every</label><select onchange="setPlan(${g.id}, 'unit', this.value)">
+        ${opt("workday", "Workday", p.unit)}${opt("week", "Week", p.unit)}${opt("month", "Month", p.unit)}</select></div>`}
+    </div>
+    ${planResultHTML(g)}
+    ${g.plan ? `<div class="sub" style="margin-top:6px;">Estimates count from tomorrow, using ${state.workDaysPerMonth} workdays a month.</div>` : ""}`;
+}
+
+function setPlan(id, key, value) {
+  const g = findGoal(id);
+  if (!g) return;
+  if (!g.plan) g.plan = { mode: "pace", date: "", amount: 0, unit: "workday", split: "mine" };
+  g.plan[key] = key === "amount" ? Math.max(0, Number(value) || 0) : value;
+  saveState();
+  // Wait a moment so a tap on another control isn't lost when the card redraws.
+  setTimeout(render, 150);
+}
+
+function saveShare(id) {
+  const g = findGoal(id);
+  const n = g && planNumbers(g);
+  if (!n || n.overdue) return;
+  if (g.adds.some(a => a.date === todayISO() && a.from !== "gift") && !confirm("You already added to this goal today. Add another share?")) return;
+  saveToGoal(g, planParts(n.perWorkday, g.plan.split));
+}
+
+function addGift(g, amount) {
+  const left = Math.max(0, Math.round((g.target - goalSaved(g)) * 100) / 100);
+  const toGoal = Math.min(amount, left);
+  if (!(toGoal > 0)) { showToast("This goal is already fully funded"); return; }
+  const extra = amount - toGoal;
+  if (!confirm(`Record a ${fmt(amount)} gift for ${g.name}?\nThis adds ${fmt(amount)} to your cash, so don't also use Add Money.${extra > 0.004 ? `\n\n${fmt(toGoal)} goes to the goal. The extra ${fmt(extra)} stays as free cash.` : ""}`)) return;
+  const incomeId = uid();
+  state.incomeLogs.unshift({ id: incomeId, date: todayISO(), amount, note: `Gift for ${g.name}` });
+  g.adds.push({ id: uid(), date: todayISO(), amount: toGoal, from: "gift", incomeId });
+  delete drafts["goal-amt-" + g.id];
+  delete drafts["goal-from-" + g.id];
+  const box = document.getElementById("goal-amt-" + g.id);
+  if (box) box.value = "";
+  saveState(); render();
+  showToast("Gift added");
+}
+
+function editGoal(id) {
+  const g = findGoal(id);
+  if (!g) return;
+  const name = prompt("Goal name", g.name);
+  if (name === null) return;
+  const price = prompt("Price (₱)", g.target);
+  if (price === null) return;
+  const target = Number(price.replace(/[₱,\s]/g, ""));
+  if (!name.trim() || !(Number.isFinite(target) && target > 0)) { showToast("Enter a name and price"); return; }
+  g.name = name.trim();
+  g.target = target;
+  saveState(); render();
+}
+
+function showPanel(id, name) {
+  goalPanel[id] = goalPanel[id] === name ? "" : name;
+  render();
+}
+
 function renderGoals() {
   const box = document.getElementById("goals-list");
   const reserved = goalsReserved();
   document.getElementById("goals-total-badge").textContent = reserved ? `${fmt(reserved)} set aside` : "";
-  box.innerHTML = state.goals.length ? "" : '<div class="sub" style="padding:8px 0;">No goals yet.</div>';
+  box.innerHTML = state.goals.length ? combinedPlanNote() : '<div class="sub" style="padding:8px 0;">No goals yet.</div>';
   state.goals.slice().sort((a, b) => !!a.bought - !!b.bought).forEach(g => {
     const saved = goalSaved(g);
     const pct = g.bought ? 100 : Math.min(100, g.target ? saved / g.target * 100 : 0);
@@ -1598,36 +1790,49 @@ function renderGoals() {
       const total = g.adds.filter(a => a.from === k).reduce((t, a) => t + a.amount, 0);
       return total ? `${SOURCE_NAMES[k]} ${fmt(total)}` : "";
     }).filter(Boolean).join(" • ");
-    const status = g.bought ? `Bought for ${fmt(g.bought.amount)}` : saved >= g.target ? "Ready to buy!" : `${fmt(g.target - saved)} to go`;
+    const status = g.bought ? `Bought for ${fmt(g.bought.amount)}` : saved >= g.target - 0.004 ? "🎉 Ready to buy!" : `${Math.floor(pct)}% • ${fmt(g.target - saved)} to go`;
+    const panel = goalPanel[g.id] || "";
+    const tab = (name, label) => `<button class="btn-secondary ${panel === name ? "active-panel" : ""}" onclick="showPanel(${g.id}, '${name}')">${label}</button>`;
+    let body = "";
+    if (panel === "add") body = `
+      <div class="goal-add">
+        <input type="number" step="0.01" inputmode="decimal" id="goal-amt-${g.id}" placeholder="Amount" />
+        <select id="goal-from-${g.id}">
+          <option value="savings">Savings</option><option value="needs">Needs</option><option value="wants">Wants</option><option value="gift">Gift (new money)</option>
+        </select>
+        <button class="btn-primary" onclick="addToGoal(${g.id})">Add</button>
+      </div>
+      ${saved < g.target ? `<div id="goal-suggest-${g.id}">${suggestionHTML(g, drafts["goal-amt-" + g.id])}</div>` : ""}`;
+    if (panel === "plan") body = `<div style="margin-top:10px;">${saved < g.target ? planFormHTML(g) : '<div class="sub">Fully funded.</div>'}</div>`;
+    if (panel === "more") body = `
+      ${bySource ? `<div class="sub" style="margin-top:8px;">From: ${bySource}</div>` : ""}
+      ${g.adds.slice().reverse().map(a => `
+        <div class="row"><span class="sub">${esc(showDate(a.date))} • ${SOURCE_NAMES[a.from]}</span>
+        <span>${fmt(a.amount)} <button class="btn-icon" onclick="delGoalAdd(${g.id}, ${a.id})">×</button></span></div>`).join("")}
+      <div class="goal-actions">
+        <button class="btn-secondary" onclick="editGoal(${g.id})">Edit Goal</button>
+        <button class="btn-secondary" style="color:var(--red);" onclick="delGoal(${g.id})">Delete</button>
+      </div>`;
     const div = document.createElement("div");
     div.className = "goal";
     div.innerHTML = `
       <div class="goal-top"><strong>${esc(g.name)}</strong><span>${g.bought ? "✓" : `${fmt(saved)} / ${fmt(g.target)}`}</span></div>
       <div class="goal-bar"><div style="width:${pct}%"></div></div>
-      <div class="sub">${status}${bySource ? ` • From: ${bySource}` : ""}</div>
-      ${g.bought ? `<button class="btn-secondary" onclick="undoPurchase(${g.id})">Undo Purchase</button>` : `
-      <div class="goal-add">
-        <input type="number" step="0.01" inputmode="decimal" id="goal-amt-${g.id}" placeholder="Amount" />
-        <select id="goal-from-${g.id}">
-          <option value="savings">Savings</option><option value="needs">Needs</option><option value="wants">Wants</option>
-        </select>
-        <button class="btn-primary" onclick="addToGoal(${g.id})">Add</button>
-      </div>
-      ${saved < g.target ? `<div id="goal-suggest-${g.id}">${suggestionHTML(g, drafts["goal-amt-" + g.id])}</div>` : ""}
+      <div class="sub">${status}</div>
+      ${planSummary(g) ? `<div class="sub">${planSummary(g)}</div>` : ""}
+      ${g.bought ? `<button class="btn-secondary" style="margin-top:8px;" onclick="undoPurchase(${g.id})">Undo Purchase</button>` : `
       <div class="goal-actions">
+        ${tab("add", "+ Add Money")}${tab("plan", "Plan")}${tab("more", "More")}
         <button class="btn-secondary" onclick="buyGoal(${g.id})">Bought It</button>
-        ${g.adds.length ? `<button class="btn-secondary" onclick="toggleGoal(${g.id})">${openGoals.has(g.id) ? "Hide" : "History"}</button>` : ""}
-        <button class="btn-secondary" style="color:var(--red);" onclick="delGoal(${g.id})">Delete</button>
       </div>
-      ${openGoals.has(g.id) ? g.adds.slice().reverse().map(a => `
-        <div class="row"><span class="sub">${esc(showDate(a.date))} • ${SOURCE_NAMES[a.from]}</span>
-        <span>${fmt(a.amount)} <button class="btn-icon" onclick="delGoalAdd(${g.id}, ${a.id})">×</button></span></div>`).join("") : ""}`}
+      ${body}`}
     `;
-    // Keep anything half-typed when the screen refreshes.
-    const oldAmt = drafts["goal-amt-" + g.id], oldFrom = drafts["goal-from-" + g.id];
     box.appendChild(div);
-    if (oldAmt) div.querySelector(`#goal-amt-${g.id}`).value = oldAmt;
-    if (oldFrom && !g.bought) div.querySelector(`#goal-from-${g.id}`).value = oldFrom;
+    // Keep anything half-typed when the screen refreshes.
+    ["amt", "from"].forEach(k => {
+      const field = div.querySelector(`#goal-${k}-${g.id}`);
+      if (field && drafts[`goal-${k}-${g.id}`]) field.value = drafts[`goal-${k}-${g.id}`];
+    });
   });
 }
 const drafts = {};
@@ -1640,7 +1845,6 @@ document.addEventListener("input", e => {
 });
 
 function findGoal(id) { return state.goals.find(g => g.id === id); }
-function toggleGoal(id) { openGoals.has(id) ? openGoals.delete(id) : openGoals.add(id); render(); }
 
 function addGoal() {
   const name = document.getElementById("goal-name").value.trim();
@@ -1658,7 +1862,8 @@ function addToGoal(id) {
   const amount = Number(document.getElementById("goal-amt-" + id).value);
   const from = document.getElementById("goal-from-" + id).value;
   if (!(Number.isFinite(amount) && amount > 0)) { showToast("Enter an amount"); return; }
-  saveToGoal(g, [{ from, amount }]);
+  if (from === "gift") addGift(g, amount);
+  else saveToGoal(g, [{ from, amount }]);
 }
 
 // Splits an amount (worked in centavos so the parts always add up exactly).
@@ -1720,7 +1925,7 @@ function leftToday() {
 
 function saveToGoal(g, parts) {
   const amount = parts.reduce((t, p) => t + p.amount, 0);
-  const daily = parts.filter(p => p.from !== "savings").reduce((t, p) => t + p.amount, 0);
+  const daily = parts.filter(p => p.from === "needs" || p.from === "wants").reduce((t, p) => t + p.amount, 0);
   const unpaid = state.bills.filter(b => b.status === "active").reduce((t, b) => t + Math.max(0, b.monthly - paidThisCycle(b.id)), 0);
   let message = `Set aside ${fmt(amount)} for ${g.name}?\n${describeParts(parts)}`;
   if (daily > 0) {
@@ -1750,7 +1955,8 @@ function cleanAutoDays() {
 
 function delGoalAdd(goalId, addId) {
   const g = findGoal(goalId);
-  if (!g || !confirm("Remove this amount from the goal?")) return;
+  const add = g && g.adds.find(a => a.id === addId);
+  if (!add || !confirm(add.from === "gift" ? "Remove this gift from the goal? The money stays in your cash. If you never received it, delete it in Money History instead." : "Remove this amount from the goal?")) return;
   g.adds = g.adds.filter(a => a.id !== addId);
   cleanAutoDays();
   saveState(); render();
@@ -1797,7 +2003,7 @@ function historyDays(days) {
   state.goals.forEach(g => {
     g.adds.forEach(a => {
       const day = dayFor(a.date);
-      day.events.push({ goalId: g.id, addId: a.id, id: a.id, name: g.name, text: `Set aside from ${SOURCE_NAMES[a.from]} ${fmt(a.amount)}`, amount: a.amount });
+      day.events.push({ goalId: g.id, addId: a.id, id: a.id, name: g.name, text: a.from === "gift" ? `Gift for this goal ${fmt(a.amount)}` : `Set aside from ${SOURCE_NAMES[a.from]} ${fmt(a.amount)}`, amount: a.amount });
       day.id = Math.max(day.id, a.id);
     });
     if (g.bought) {
