@@ -302,7 +302,7 @@
   .plan-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px; }
   .plan-grid div { background:var(--card-2); border-radius:9px; padding:7px 10px; }
   .plan-grid strong { display:block; font-size:14px; }
-  .goal-actions .active-panel { border-color:#2563eb !important; background:#2563eb; color:#fff; }
+  #rest-day-buttons .active-panel, #schedule-buttons .active-panel, .goal-actions .active-panel { border-color:#2563eb !important; background:#2563eb; color:#fff; }
   .goal-actions { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
   .toast {
     position: fixed;
@@ -352,6 +352,13 @@
 
 <!-- OVERVIEW TAB -->
 <section id="view-overview">
+  <div class="card hidden" id="new-month-card">
+    <div class="card-title" id="new-month-title">New month</div>
+    <p class="sub" id="new-month-text" style="margin:6px 0 10px;"></p>
+    <button class="btn-primary" id="new-month-start" onclick="archiveAndStartNewMonth()">Start New Month</button>
+    <button class="btn-secondary" style="width:100%; margin-top:6px;" onclick="keepCurrentCycle()">Bills Are Already Up to Date</button>
+  </div>
+
   <div class="card">
     <div class="card-header">
       <div class="card-title">Cash Position</div>
@@ -463,7 +470,7 @@
       <button class="btn-primary" style="background:#b45309;" onclick="addLog('wants')">+ Want</button>
     </div>
     <details>
-      <summary class="sub">Date and day status</summary>
+      <summary class="sub" id="day-status-summary">Date and day status</summary>
       <div class="form-grid" style="margin-top:8px;">
         <div>
           <label>Date</label>
@@ -472,6 +479,7 @@
         <div>
           <label>Day Status (whole day)</label>
           <select id="log-type" onchange="changeDayStatus()">
+            <option value="" disabled hidden>Not set (you'll be asked)</option>
             <option value="work">Workday (+Daily Cap)</option>
             <option value="off">Rest / Off Day (₱0 Cap)</option>
           </select>
@@ -622,6 +630,13 @@
         <input type="number" step="1" id="set-batch" onchange="saveSettings()" />
       </div>
     </div>
+    <label style="margin-top:10px;">Work Schedule</label>
+    <div id="schedule-buttons" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    <div id="rest-day-section">
+      <label style="margin-top:10px;">Usual Rest Days (tap to select)</label>
+      <div id="rest-day-buttons" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    </div>
+    <div class="sub" id="schedule-help" style="margin-top:5px;"></div>
   </div>
 
   <div class="card">
@@ -795,6 +810,21 @@
   </div>
 </div>
 
+<!-- WORKING TODAY MODAL -->
+<div class="modal-backdrop hidden" id="working-modal">
+  <div class="modal">
+    <div class="card-header">
+      <h3 style="margin:0; font-size:16px;" id="working-title">Working today?</h3>
+      <button class="btn-icon" onclick="closeModal('working-modal')">✕</button>
+    </div>
+    <p class="sub" style="margin-top:0;">Yes adds a daily cap. No counts it as a rest day (₱0 cap).</p>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <button class="btn-primary" onclick="answerWorking('work')">Yes</button>
+      <button class="btn-secondary" onclick="answerWorking('off')">No</button>
+    </div>
+  </div>
+</div>
+
 <!-- SHARE MODAL -->
 <div class="modal-backdrop hidden" id="share-modal">
   <div class="modal">
@@ -823,7 +853,8 @@
       <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBackupJSON(event)" />
       <button class="btn-secondary" onclick="copyNotesSummary()">Copy Text Summary (For Notes App)</button>
       <button class="btn-secondary" onclick="archiveAndStartNewMonth()">Start Next Month Cycle</button>
-      <button class="btn-secondary" onclick="downloadSafetyCopy()">Download Safety Copy</button>
+      <button class="btn-secondary" onclick="toggleSafetyList()">Safety Copies</button>
+      <div id="safety-list" class="hidden"></div>
       <button class="btn-secondary" style="color:var(--red);" onclick="resetAllBlank()">Clear All Data (Reset to ₱0.00)</button>
     </div>
   </div>
@@ -836,7 +867,10 @@
 <script>
 const STORAGE_KEY = "pesoflow_universal_v2";
 const PAGE_SIZE = 15;
-const SAFETY_KEY = "pesoflow_safety_copy";
+const SAFETY_KEY = "pesoflow_safety_copy"; // old single copy, still read
+const SAFETY_LIST_KEY = "pesoflow_safety_copies";
+const SAFETY_LIMIT = 5;
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 let currentPage = 1;
 let storageAvailable = true;
 
@@ -859,7 +893,9 @@ const BLANK_STATE = {
   payments: [],
   goals: [],
   cycle: 1,
-  archivedMonths: []
+  archivedMonths: [],
+  restDays: [],
+  noSchedule: false
 };
 
 function checkStorageHealth() {
@@ -948,7 +984,9 @@ function normalizeState(input) {
     batchDays: Math.max(1, Math.round(num(d.batchDays, 5))),
     pctSav: pos(d.pctSav), pctNeed: pos(d.pctNeed), pctWant: pos(d.pctWant),
     cycle: Math.max(1, Math.round(num(d.cycle, 1))),
-    archivedMonths: list(d.archivedMonths)
+    archivedMonths: list(d.archivedMonths),
+    noSchedule: d.noSchedule === true,
+    restDays: [...new Set(Array.isArray(d.restDays) ? d.restDays : [])].filter(n => Number.isInteger(n) && n >= 0 && n <= 6)
   };
   out.wallets = list(d.wallets).map(w => ({
     id: id(w.id), name: txt(w.name), role: txt(w.role),
@@ -987,6 +1025,9 @@ function normalizeState(input) {
     } : null,
     bought: g.bought && typeof g.bought === "object" ? { amount: pos(g.bought.amount), date: toISO(g.bought.date) } : null
   }));
+  // The calendar month the bill cycle belongs to. Older data: use the latest payment in this cycle.
+  const paidMonths = out.payments.filter(p => p.cycle === out.cycle).map(p => getMonthKey(p.date)).filter(k => k !== "Other").sort();
+  out.cycleMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(d.cycleMonth) ? d.cycleMonth : (paidMonths.pop() || getMonthKey(todayISO()));
   const fallbackCap = currentCap(out);
   out.logs = list(d.logs).map(l => ({
     id: id(l.id), date: toISO(l.date), type: l.type === "off" ? "off" : "work",
@@ -1015,8 +1056,45 @@ function addPayment(bill, amount, full = false) {
 }
 
 let loadError = false;
+function safetyCopies() {
+  try {
+    const saved = localStorage.getItem(SAFETY_LIST_KEY);
+    if (saved) return JSON.parse(saved).filter(c => c && typeof c.raw === "string");
+    const old = localStorage.getItem(SAFETY_KEY);
+    return old && !isBlankData(old) ? [{ at: 0, raw: old }] : [];
+  } catch (e) { return []; }
+}
+
+// True only for readable data with nothing recorded, so a blank tracker never pushes out real copies.
+function isBlankData(raw) {
+  try {
+    const d = JSON.parse(raw);
+    return !!d && !Number(d.earned) && ["bills", "logs", "incomeLogs", "payments", "goals"].every(k => Array.isArray(d[k]) && !d[k].length);
+  } catch (e) { return false; }
+}
+
+// Keeps the newest copies first. Drops the oldest ones if storage is full.
 function keepSafetyCopy(raw) {
-  try { localStorage.setItem(SAFETY_KEY, raw); return true; } catch (e) { return false; }
+  if (isBlankData(raw)) return true;
+  const copies = safetyCopies();
+  if (copies.some(c => c.raw === raw)) return true;
+  copies.unshift({ at: Date.now(), raw });
+  copies.length = Math.min(copies.length, SAFETY_LIMIT);
+  while (copies.length) {
+    try {
+      localStorage.setItem(SAFETY_LIST_KEY, JSON.stringify(copies));
+      try { localStorage.removeItem(SAFETY_KEY); } catch (e) {}
+      return true;
+    } catch (e) { copies.pop(); }
+  }
+  return false;
+}
+
+// Copies whatever is about to be replaced. If loading failed, that is the stored data, not what's on screen.
+function backupBeforeReplace() {
+  let raw = null;
+  try { raw = loadError ? localStorage.getItem(STORAGE_KEY) : JSON.stringify(state); } catch (e) { return false; }
+  return !raw || keepSafetyCopy(raw);
 }
 
 function loadInitialState() {
@@ -1120,6 +1198,8 @@ function changePage(delta) {
 }
 
 function render() {
+  rollEmptyCycle();
+  syncLogForm();
   const activeBills = state.bills.filter(b => b.status === "active");
   const activeMonthlyBills = activeBills.reduce((s, b) => s + Number(b.monthly), 0);
 
@@ -1286,7 +1366,7 @@ function render() {
   document.getElementById("ov-rollover").textContent = `${netRollover >= 0 ? '+' : ''}${fmt(netRollover)} vs saved daily caps`;
   document.getElementById("ov-rollover").className = "metric-sub " + (netRollover >= 0 ? "green" : "red");
   document.getElementById("ov-bills-paid").textContent = fmt(totalPaidThisMonth);
-  document.getElementById("ov-bills-unpaid").textContent = `${fmt(unpaidThisMonth)} unpaid this mo`;
+  document.getElementById("ov-bills-unpaid").textContent = `${fmt(unpaidThisMonth)} due this month`;
 
   document.getElementById("ov-bills-count").textContent = `${activeBills.length} active commitments`;
   document.getElementById("ov-fixed-mo").textContent = `${fmt(activeMonthlyBills)} / mo`;
@@ -1311,13 +1391,24 @@ function render() {
 
   const today = days.find(d => d.date === todayISO());
   const todaySpent = today ? today.needs + today.wants : 0;
-  const todayLeft = (today ? today.cap - today.goal : dailySpendCap) - todaySpent;
+  const status = todayType();
+  const newDayCap = status === "work" ? dailySpendCap : 0;
+  const todayLeft = (today ? today.cap - today.goal : newDayCap - goalFromAllowance(todayISO())) - todaySpent;
   document.getElementById("today-spent").textContent = fmt(todaySpent);
   document.getElementById("today-left-label").textContent = todayLeft >= 0 ? "Left today" : "Over today";
   document.getElementById("today-left").textContent = fmt(Math.abs(todayLeft));
   document.getElementById("today-left").className = todayLeft >= 0 ? "green" : "red";
-  document.getElementById("daily-cap-badge").textContent = `Today's cap: ${fmt(today ? today.cap : dailySpendCap)}`;
-  syncLogForm();
+  document.getElementById("daily-cap-badge").textContent = `Today's cap: ${fmt(today ? today.cap : newDayCap)}`;
+  if (!status) {
+    document.getElementById("today-left-label").textContent = "Left today";
+    document.getElementById("today-left").textContent = "—";
+    document.getElementById("today-left").className = "";
+    document.getElementById("daily-cap-badge").textContent = "Today's cap: not set";
+  }
+  const formType = document.getElementById("log-type").value;
+  document.getElementById("day-status-summary").textContent = `Date and day status: ${pickedDate ? showDate(pickedDate) : "Today"}, ${formType === "off" ? "Rest day" : formType === "work" ? "Workday" : "Not set"}`;
+  renderRestDays();
+  renderNewMonthCard();
 
   renderGoals();
 
@@ -1418,7 +1509,7 @@ function render() {
 
   const warnings = [];
   if (loadError) warnings.push("Your saved data couldn't be safely loaded or backed up, so saving is OFF to protect it. Download the safety copy in Backup, if available.");
-  if (Math.abs(pctSum - 100) >= 0.001) warnings.push(`Your splits total ${pctSum}%, not 100%. Fix them in Edit Splits.`);
+  if (Math.abs(pctSum - 100) >= 0.001) warnings.push(`Your splits total ${pctSum}%, not 100%. Fix them in Settings.`);
   if (goalsReserved() > 0 && totals().cash - state.bills.filter(b => b.status === "active").reduce((t, b) => t + Math.max(0, b.monthly - paidThisCycle(b.id)), 0) - goalsReserved() < 0) warnings.push("Your cash doesn't cover both unpaid bills and goal money.");
   if (activeMonthlyBills > monthlyIncome) warnings.push(`Bills exceed monthly work pay by ${fmt(activeMonthlyBills - monthlyIncome)}, so allowances are ₱0.`);
   const warnEl = document.getElementById("warning-box");
@@ -1541,11 +1632,9 @@ function saveEditIncome() {
   const item = state.incomeLogs.find(x => x.id === id);
   if (!item) return;
   const amount = Number(document.getElementById("edit-income-amt").value);
-  // Only entries that were already negative (corrections) can stay negative.
   if (!Number.isFinite(amount) || amount === 0 || (item.amount > 0 && amount < 0)) { showToast("Enter a valid amount"); return; }
   if (amount !== item.amount && !confirm(`Change ${fmt(item.amount)} to ${fmt(amount)}? Your cash will be recalculated.`)) return;
   item.amount = amount;
-  // A linked gift follows the edited amount, without going past the goal's price.
   state.goals.forEach(g => g.adds.forEach(a => {
     if (a.incomeId !== id) return;
     const others = goalSaved(g) - a.amount;
@@ -1602,7 +1691,7 @@ function goalFromAllowance(date) {
   return state.goals.reduce((t, g) => t + g.adds.filter(a => a.date === date && (a.from === "needs" || a.from === "wants")).reduce((n, a) => n + a.amount, 0), 0);
 }
 
-const goalPanel = {}; // which section is open on each goal
+const goalPanel = {};
 
 const DAYS_PER_MONTH = 365.25 / 12;
 const roundUp = n => Math.ceil(n * 100 - 1e-6) / 100;
@@ -1614,12 +1703,11 @@ function dateAfter(days) {
 }
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// Estimates assume workdays are spread evenly across the calendar. Today is not counted.
 function planNumbers(g) {
   const plan = g.plan;
   const left = Math.round(Math.max(0, g.target - goalSaved(g)) * 100) / 100;
   if (!plan || g.bought || left <= 0) return null;
-  const workRatio = Math.min(1, state.workDaysPerMonth / DAYS_PER_MONTH); // workdays per calendar day
+  const workRatio = Math.min(1, state.workDaysPerMonth / DAYS_PER_MONTH);
   const perWeekDays = workRatio * 7;
   if (plan.mode === "date") {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(plan.date)) return null;
@@ -1636,7 +1724,7 @@ function planNumbers(g) {
   }
   if (!(plan.amount > 0)) return null;
   const rate = plan.unit === "workday" ? plan.amount : plan.unit === "week" ? plan.amount / perWeekDays : plan.amount / state.workDaysPerMonth;
-  const count = Math.ceil(left / plan.amount - 1e-9); // number of times you set money aside
+  const count = Math.ceil(left / plan.amount - 1e-9);
   const days = Math.ceil(plan.unit === "workday" ? count / workRatio : plan.unit === "week" ? count * 7 : count * DAYS_PER_MONTH);
   return {
     left, days, count,
@@ -1693,7 +1781,6 @@ function planResultHTML(g) {
     <button class="btn-secondary" style="width:100%; margin-top:8px;" onclick="saveShare(${g.id})">Set Aside One Workday's Share Now</button>`;
 }
 
-// Warns when all planned goals together ask for more than a workday's budget guides.
 function combinedPlanNote() {
   const plans = state.goals.map(g => ({ g, n: planNumbers(g) })).filter(x => x.n && !x.n.overdue);
   if (plans.length < 2) return "";
@@ -1730,7 +1817,6 @@ function setPlan(id, key, value) {
   if (!g.plan) g.plan = { mode: "pace", date: "", amount: 0, unit: "workday", split: "mine" };
   g.plan[key] = key === "amount" ? Math.max(0, Number(value) || 0) : value;
   saveState();
-  // Wait a moment so a tap on another control isn't lost when the card redraws.
   setTimeout(render, 150);
 }
 
@@ -1828,7 +1914,6 @@ function renderGoals() {
       ${body}`}
     `;
     box.appendChild(div);
-    // Keep anything half-typed when the screen refreshes.
     ["amt", "from"].forEach(k => {
       const field = div.querySelector(`#goal-${k}-${g.id}`);
       if (field && drafts[`goal-${k}-${g.id}`]) field.value = drafts[`goal-${k}-${g.id}`];
@@ -1866,7 +1951,6 @@ function addToGoal(id) {
   else saveToGoal(g, [{ from, amount }]);
 }
 
-// Splits an amount (worked in centavos so the parts always add up exactly).
 function splitAmount(amount, weights) {
   const keys = Object.keys(weights).filter(k => weights[k] > 0);
   const total = keys.reduce((t, k) => t + weights[k], 0);
@@ -1890,7 +1974,6 @@ function suggestions() {
   return list.filter(o => Object.values(o.weights).some(v => v > 0));
 }
 
-// Uses the typed amount, or whatever is still needed if the box is empty.
 function suggestionAmount(g, typed) {
   const left = Math.max(0, Math.round((g.target - goalSaved(g)) * 100) / 100);
   const n = Number(typed);
@@ -1915,18 +1998,21 @@ function useSuggestion(id, key) {
   if (amount > 0) saveToGoal(g, splitAmount(amount, option.weights));
 }
 
-// What is left of today's cap.
 function leftToday() {
   const day = groupDays(state.logs).find(d => d.date === todayISO());
   if (day) return day.cap - day.goal - day.needs - day.wants;
-  const off = !pickedDate && document.getElementById("log-type").value === "off";
-  return (off ? 0 : currentCap(state)) - goalFromAllowance(todayISO());
+  return (todayType() === "off" ? 0 : currentCap(state)) - goalFromAllowance(todayISO());
 }
 
 function saveToGoal(g, parts) {
   const amount = parts.reduce((t, p) => t + p.amount, 0);
   const daily = parts.filter(p => p.from === "needs" || p.from === "wants").reduce((t, p) => t + p.amount, 0);
   const unpaid = state.bills.filter(b => b.status === "active").reduce((t, b) => t + Math.max(0, b.monthly - paidThisCycle(b.id)), 0);
+  if (daily > 0 && !todayType()) {
+    const date = todayISO();
+    askWorking(date, answer => { pickedDate = ""; setFormType(date, answer); render(); saveToGoal(g, parts); });
+    return;
+  }
   let message = `Set aside ${fmt(amount)} for ${g.name}?\n${describeParts(parts)}`;
   if (daily > 0) {
     const after = leftToday() - daily;
@@ -1935,9 +2021,8 @@ function saveToGoal(g, parts) {
   if (amount > totals().cash - unpaid - goalsReserved() + 0.004) message += "\n\nWarning: this is more than your free cash after unpaid bills and goals.";
   if (!confirm(message)) return;
   const date = todayISO();
-  // Money from the daily allowance needs today to have a cap.
   if (daily > 0 && !state.logs.some(l => l.date === date)) {
-    const type = !pickedDate ? document.getElementById("log-type").value : "work";
+    const type = todayType();
     state.logs.push({ id: uid(), date, type, needs: 0, wants: 0, note: "Goal set-aside", cap: type === "off" ? 0 : currentCap(state), auto: true });
   }
   parts.forEach(p => g.adds.push({ id: uid(), date, amount: p.amount, from: p.from }));
@@ -1948,7 +2033,6 @@ function saveToGoal(g, parts) {
   showToast(`${fmt(amount)} set aside`);
 }
 
-// Removes placeholder days that no longer have any goal money.
 function cleanAutoDays() {
   state.logs = state.logs.filter(l => !(l.auto && !goalFromAllowance(l.date) && state.logs.filter(x => x.date === l.date).length === 1));
 }
@@ -1993,7 +2077,6 @@ function undoPurchase(id) {
   saveState(); render();
 }
 
-// Adds goal activity to the history list. Days with only goal activity get no cap and don't count as workdays.
 function historyDays(days) {
   const map = new Map(days.map(d => [d.date, { ...d, events: [] }]));
   const dayFor = date => {
@@ -2014,7 +2097,6 @@ function historyDays(days) {
   return Array.from(map.values());
 }
 
-// Combines entries by date. A day has one status and ONE cap, however many entries it has.
 function groupDays(logs) {
   const map = new Map();
   logs.slice().sort((a, b) => a.id - b.id).forEach(l => {
@@ -2044,9 +2126,9 @@ function setDayStatus(date, type) {
   day.items.forEach(l => { l.type = type; l.cap = cap; });
 }
 
-// The form follows today's date unless another date was picked.
 let pickedDate = "";
 let formDate = "";
+let formLogged = false;
 function syncLogForm() {
   const date = pickedDate || todayISO();
   const input = document.getElementById("log-date");
@@ -2054,19 +2136,81 @@ function syncLogForm() {
   input.value = date;
   const day = groupDays(state.logs).find(d => d.date === date);
   if (day) select.value = day.type;
-  else if (formDate !== date) select.value = "work";
+  else if (formDate !== date || formLogged) select.value = defaultType(date);
+  select.options[0].hidden = !state.noSchedule;
   formDate = date;
+  formLogged = !!day;
+}
+
+function defaultType(date) {
+  if (state.noSchedule) return "";
+  const [y, m, d] = date.split("-").map(Number);
+  return state.restDays.includes(new Date(y, m - 1, d).getDay()) ? "off" : "work";
+}
+
+function todayType() {
+  const date = todayISO();
+  const day = groupDays(state.logs).find(d => d.date === date);
+  if (day) return day.type;
+  return !pickedDate && formDate === date ? document.getElementById("log-type").value : defaultType(date);
+}
+
+let pendingAnswer = null;
+function askWorking(date, then) {
+  pendingAnswer = then;
+  document.getElementById("working-title").textContent = date === todayISO() ? "Working today?" : `Working on ${showDate(date)}?`;
+  document.getElementById("working-modal").classList.remove("hidden");
+}
+
+function answerWorking(type) {
+  closeModal("working-modal");
+  const then = pendingAnswer;
+  pendingAnswer = null;
+  if (then) then(type);
+}
+
+function setFormType(date, type) {
+  document.getElementById("log-type").value = type;
+  formDate = date;
+  formLogged = false;
+}
+
+function setSchedule(noSchedule) {
+  state.noSchedule = noSchedule;
+  formDate = "";
+  saveState(); render();
+}
+
+function renderRestDays() {
+  document.getElementById("schedule-buttons").innerHTML = [[false, "Usual rest days"], [true, "No fixed schedule"]].map(([value, label]) => {
+    const on = state.noSchedule === value;
+    return `<button class="btn-secondary ${on ? "active-panel" : ""}" aria-pressed="${on}" onclick="setSchedule(${value})">${on ? "✓ " : ""}${label}</button>`;
+  }).join("");
+  document.getElementById("rest-day-section").classList.toggle("hidden", state.noSchedule);
+  document.getElementById("schedule-help").textContent = state.noSchedule
+    ? "You'll be asked if you're working on the first entry of each day. Saved days don't change."
+    : "New entries on these days start as Rest / Off Day. Saved days don't change.";
+  document.getElementById("rest-day-buttons").innerHTML = WEEKDAYS.map((name, i) => {
+    const on = state.restDays.includes(i);
+    return `<button class="btn-secondary ${on ? "active-panel" : ""}" aria-pressed="${on}" onclick="toggleRestDay(${i})">${on ? "✓ " : ""}${name}</button>`;
+  }).join("");
+}
+
+function toggleRestDay(i) {
+  state.restDays = state.restDays.includes(i) ? state.restDays.filter(n => n !== i) : [...state.restDays, i];
+  formDate = "";
+  saveState(); render();
 }
 
 function pickLogDate() {
   const v = document.getElementById("log-date").value;
   pickedDate = v === todayISO() ? "" : v;
-  syncLogForm();
+  render();
 }
 
 function changeDayStatus() {
   const date = pickedDate || todayISO();
-  if (!state.logs.some(l => l.date === date)) return;
+  if (!state.logs.some(l => l.date === date)) { render(); return; }
   setDayStatus(date, document.getElementById("log-type").value);
   saveState(); render();
   showToast("Day status updated");
@@ -2088,6 +2232,7 @@ function addLog(kind) {
   if (kind && !(Number.isFinite(amount) && amount > 0)) { showToast("Enter an amount"); return; }
   const day = groupDays(state.logs).find(d => d.date === date);
   if (!kind && day) { showToast("This day is already logged"); return; }
+  if (!type) { askWorking(date, answer => { setFormType(date, answer); addLog(kind); }); return; }
   const cap = type === "off" ? 0 : (day && day.type === "work" ? day.cap : currentCap(state));
   state.logs.push({ id: uid(), date, type, needs: kind === "needs" ? amount : 0, wants: kind === "wants" ? amount : 0, note, cap });
   setDayStatus(date, type);
@@ -2106,7 +2251,7 @@ function openEditLog(id) {
   const item = state.logs.find(l => l.id === id);
   if (!item) return;
   document.getElementById("edit-log-id").value = item.id;
-  document.getElementById("edit-log-date").value = item.date; // blank if the old date was unreadable
+  document.getElementById("edit-log-date").value = item.date;
   document.getElementById("edit-log-type").value = item.type;
   document.getElementById("edit-log-needs").value = item.needs;
   document.getElementById("edit-log-wants").value = item.wants;
@@ -2122,7 +2267,6 @@ function saveEditLog() {
   const newType = document.getElementById("edit-log-type").value;
   const oldType = item.type;
   const target = groupDays(state.logs.filter(l => l !== item)).find(d => d.date === newDate);
-  // Moving to a logged day uses that day's status unless you changed it here.
   const type = target && newType === oldType ? target.type : newType;
   if (target) item.cap = target.type === "work" ? target.cap : 0;
   if (type === "work" && (target ? target.type : oldType) !== "work") item.cap = currentCap(state);
@@ -2293,7 +2437,10 @@ function saveWallets() {
 }
 
 function openShareModal() { document.getElementById("share-modal").classList.remove("hidden"); }
-function openBackupModal() { document.getElementById("backup-modal").classList.remove("hidden"); }
+function openBackupModal() {
+  document.getElementById("safety-list").classList.add("hidden");
+  document.getElementById("backup-modal").classList.remove("hidden");
+}
 
 function copyBlankLink() {
   const url = window.location.origin + window.location.pathname;
@@ -2306,14 +2453,51 @@ function copySnapshotLink() {
   navigator.clipboard.writeText(url).then(() => { closeModal("share-modal"); showToast("Snapshot link copied!"); });
 }
 
-function downloadSafetyCopy() {
-  let raw = null;
-  try { raw = localStorage.getItem(SAFETY_KEY); } catch (e) {}
-  if (!raw) { showToast("No safety copy yet"); return; }
+function toggleSafetyList() {
+  const box = document.getElementById("safety-list");
+  box.classList.toggle("hidden");
+  const copies = safetyCopies();
+  box.innerHTML = copies.length ? "" : '<div class="sub">No safety copies yet. One is saved before your data is reset or replaced.</div>';
+  copies.forEach((c, i) => {
+    let info = "Unreadable data (download only)", readable = false;
+    try {
+      const d = normalizeState(JSON.parse(c.raw));
+      info = `${fmt(d.earned)} money in • ${d.logs.length} expense log(s) • ${d.bills.length} bill(s)`;
+      readable = true;
+    } catch (e) {}
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div><strong>${c.at ? esc(new Date(c.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) : "Earlier copy"}</strong><div class="sub">${info}</div></div>
+      <div style="display:flex; gap:6px;">
+        ${readable ? `<button class="btn-sm" onclick="restoreSafetyCopy(${i})">Restore</button>` : ""}
+        <button class="btn-sm" onclick="downloadSafetyCopy(${i})">Download</button>
+      </div>`;
+    box.appendChild(row);
+  });
+}
+
+function downloadSafetyCopy(i) {
+  const copy = safetyCopies()[i];
+  if (!copy) return;
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
-  a.download = "pesoflow-safety-copy.json";
+  a.href = URL.createObjectURL(new Blob([copy.raw], { type: "application/json" }));
+  a.download = `pesoflow-safety-copy-${isoFromDate(copy.at ? new Date(copy.at) : new Date())}.json`;
   a.click();
+}
+
+function restoreSafetyCopy(i) {
+  const copy = safetyCopies()[i];
+  if (!copy || !confirm("Replace the data on this device with this safety copy?")) return;
+  let incoming;
+  try { incoming = normalizeState(JSON.parse(copy.raw)); } catch (e) { alert("This copy couldn't be loaded."); return; }
+  if (!backupBeforeReplace()) { alert("Couldn't make a safety copy. Nothing was replaced."); return; }
+  state = incoming;
+  loadError = false;
+  formDate = ""; pickedDate = "";
+  closeModal("backup-modal");
+  saveState(); render();
+  showToast("Safety copy restored!");
 }
 
 function exportBackupJSON() {
@@ -2335,9 +2519,10 @@ function importBackupJSON(e) {
       const parsed = JSON.parse(ev.target.result);
       const incoming = normalizeState(parsed);
       if (!confirm("Replace the data on this device with this backup?")) return;
-      if (!loadError && !keepSafetyCopy(JSON.stringify(state))) { alert("Couldn't make a safety copy. Nothing was replaced."); return; }
+      if (!backupBeforeReplace()) { alert("Couldn't make a safety copy. Nothing was replaced."); return; }
       state = incoming;
       loadError = false;
+      formDate = ""; pickedDate = "";
       saveState(); render(); closeModal("backup-modal");
       showToast("Backup restored!");
     } catch (err) {
@@ -2349,22 +2534,12 @@ function importBackupJSON(e) {
 }
 
 function copyNotesSummary() {
-  let txt = `PESOFLOW BUDGET BACKUP
-Total Money In: ${fmt(state.earned)}
-Cash Left: ${fmt(totals().cash)}
-Split: ${state.pctSav}/${state.pctNeed}/${state.pctWant}
-
-DAILY LOGS:
-`;
-  groupDays(state.logs).sort((a, b) => b.date.localeCompare(a.date)).forEach(l => { txt += `${showDate(l.date)}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs.toFixed(2)} | Wants: ₱${l.wants.toFixed(2)}
-`; });
+  let txt = `PESOFLOW BUDGET BACKUP\nTotal Money In: ${fmt(state.earned)}\nCash Left: ${fmt(totals().cash)}\nSplit: ${state.pctSav}/${state.pctNeed}/${state.pctWant}\n\nDAILY LOGS:\n`;
+  groupDays(state.logs).sort((a, b) => b.date.localeCompare(a.date)).forEach(l => { txt += `${showDate(l.date)}${l.type==='off'?' (Off)':''} | Needs: ₱${l.needs.toFixed(2)} | Wants: ₱${l.wants.toFixed(2)}\n`; });
   txt += `\nGOALS:\n`;
   state.goals.forEach(g => { txt += `${g.name}: ${g.bought ? `bought for ${fmt(g.bought.amount)}` : `${fmt(goalSaved(g))} of ${fmt(g.target)}`}\n`; });
-  txt += `
-BILLS & LOANS:
-`;
-  state.bills.forEach(b => { txt += `${b.name}: ₱${b.monthly}/mo (Paid: ₱${paidThisCycle(b.id)}) [${b.status}]
-`; });
+  txt += `\nBILLS & LOANS:\n`;
+  state.bills.forEach(b => { txt += `${b.name}: ₱${b.monthly}/mo (Paid: ₱${paidThisCycle(b.id)}) [${b.status}]\n`; });
   navigator.clipboard.writeText(txt).then(() => { closeModal("backup-modal"); showToast("Summary copied to clipboard!"); });
 }
 
@@ -2375,16 +2550,43 @@ function archiveAndStartNewMonth() {
     billsPaid: state.payments.filter(p => p.cycle === state.cycle).reduce((t, p) => t + p.amount, 0)
   });
   state.cycle++;
+  const [y, m] = state.cycleMonth.split("-").map(Number);
+  const next = getMonthKey(isoFromDate(new Date(y, m, 1)));
+  const now = getMonthKey(todayISO());
+  state.cycleMonth = next > now ? next : now;
   closeModal("backup-modal");
   saveState(); render();
   showToast("New month cycle started!");
 }
 
+function rollEmptyCycle() {
+  const now = getMonthKey(todayISO());
+  if (state.cycleMonth >= now || state.payments.some(p => p.cycle === state.cycle)) return;
+  state.cycleMonth = now;
+  saveState();
+}
+
+function renderNewMonthCard() {
+  const now = getMonthKey(todayISO());
+  const due = state.cycleMonth < now;
+  document.getElementById("new-month-card").classList.toggle("hidden", !due);
+  if (!due) return;
+  document.getElementById("new-month-title").textContent = `It's ${formatMonthLabel(now)}`;
+  document.getElementById("new-month-text").textContent = `Bills still show payments from ${formatMonthLabel(state.cycleMonth)}. Start the new month before recording new bill payments.`;
+}
+
+function keepCurrentCycle() {
+  if (!confirm("Keep the current bill payments as this month's?")) return;
+  state.cycleMonth = getMonthKey(todayISO());
+  saveState(); render();
+}
+
 function resetAllBlank() {
   if (!confirm("Reset everything back to ₱0.00?")) return;
-  if (!loadError && !keepSafetyCopy(JSON.stringify(state))) { alert("Couldn't make a safety copy. Nothing was cleared."); return; }
+  if (!backupBeforeReplace()) { alert("Couldn't make a safety copy. Nothing was cleared."); return; }
   state = normalizeState({ ...JSON.parse(JSON.stringify(BLANK_STATE)), version: 3 });
   loadError = false;
+  formDate = ""; pickedDate = "";
   closeModal("backup-modal");
   saveState(); render();
   showToast("All data cleared!");
@@ -2397,7 +2599,6 @@ if ("serviceWorker" in navigator && window.location.protocol.startsWith("http"))
 }
 
 checkStorageHealth();
-// Refresh "today" when the app is reopened on a new day.
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 if (!loadError) saveState();
 render();
